@@ -19,5 +19,5 @@ func main() {
 	println("JWT_SECRET:", os.Getenv("JWT_SECRET"))
 	database.ConnectDB()
 	r := routes.SetupRouter()
-	r.Run(":8080")
+	r.Run("0.0.0.0:8080")
 }
