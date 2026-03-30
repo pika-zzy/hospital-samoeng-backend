@@ -67,7 +67,7 @@ func CreateNews(c *gin.Context) {
 			return
 		}
 		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext) // สร้างชื่อไฟล์ใหม่แบบไม่ซ้ำ
-		savePath := filepath.Join("uploads/file", newFileName)
+		savePath := filepath.Join("uploads/file/news", newFileName)
 
 		if err := c.SaveUploadedFile(file, savePath); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "บันทึกไฟล์ไม่สำเร็จ"})
@@ -75,7 +75,7 @@ func CreateNews(c *gin.Context) {
 		}
 
 		// กำหนด URL ของไฟล์ที่ถูกอัปโหลด (สมมติว่าไฟล์จะถูกเสิร์ฟจาก /uploads/)
-		fileURL = "/uploads/file/" + newFileName
+		fileURL = "/uploads/file/news/" + newFileName
 	}
 
 	file, err = c.FormFile("image")
