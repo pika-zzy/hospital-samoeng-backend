@@ -12,7 +12,7 @@ func Itaroute(r *gin.Engine) {
 	{
 		itaGroup.GET("", ita_controller.GetAllITA)
 		itaGroup.GET("/:id", ita_controller.GetITAByID)
-		itaGroup.POST("",
+		itaGroup.POST("/upload",
 			middleware.AuthMiddleware(),       //อันนี้เช็ค login
 			middleware.EmployeeAndAdminOnly(), //อันนี้เช็ค role adminonly
 			ita_controller.CreateITA,

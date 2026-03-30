@@ -5,6 +5,7 @@ import (
 	"hospitalbackend/database"
 	model "hospitalbackend/models"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -12,51 +13,96 @@ import (
 )
 
 func CreateITA(c *gin.Context) {
-	//รับค่าข้อความ (Text Fields) จาก FromData
 	title := c.PostForm("title")
 	year := c.PostForm("year")
-	var fileURL string = " " // กำหนดค่าเริ่มต้นเป็นว่าง
-	// รับไฟล์ (File)
-	file, err := c.FormFile("file")
-	if err == nil {
-		// ถ้ามีไฟล์ถูกอัปโหลดมา ให้บันทึกไฟล์ลงในโฟลเดอร์ "uploads"
-		ext := filepath.Ext(file.Filename) // ดึงนามสกุลไฟล์
-		//สั่ง บันทึกไฟล์ลงในโฟลเดอร์ "uploads"
-		if ext != ".pdf" {
-			c.JSON(400, gin.H{"success": false, "message": "อัพโหลดได้เฉพาะไฟล์ PDF เท่านั้น"})
-			return
-		}
-		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext) // สร้างชื่อไฟล์ใหม่แบบไม่ซ้ำ
-		savePath := filepath.Join("uploads/file/ita", newFileName)
 
-		if err := c.SaveUploadedFile(file, savePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "บันทึกไฟล์ไม่สำเร็จ"})
-			return
-		}
-
-		// กำหนด URL ของไฟล์ที่ถูกอัปโหลด (สมมติว่าไฟล์จะถูกเสิร์ฟจาก /uploads/)
-		fileURL = "/uploads/file/ita/" + newFileName
-	}
-
-	// สร้างไฟล์
-	itanew := model.ITA{
-		Title:   title,
-		Year:    year,
-		FileURL: fileURL, // กำหนด URL ของไฟล์ที่ถูกอัปโหลด
-	}
-	result := database.DB.Create(&itanew)
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+	//  validate
+	if title == "" || year == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"message": result.Error.Error(),
+			"message": "title and year are required",
 		})
 		return
 	}
+
+	//  กัน year แปลก
+	if len(year) != 4 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "invalid year",
+		})
+		return
+	}
+
+	//  รับไฟล์
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "file is required",
+		})
+		return
+	}
+
+	//  จำกัดเฉพาะ PDF
+	ext := filepath.Ext(file.Filename)
+	if ext != ".pdf" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "only pdf allowed",
+		})
+		return
+	}
+
+	//  ตั้งชื่อไฟล์ใหม่ (กันชน)
+	newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+
+	//  path แยกปี
+	yearPath := filepath.Join("uploads/file/ita", year)
+
+	//  สร้างโฟลเดอร์อัตโนมัติ
+	if err := os.MkdirAll(yearPath, os.ModePerm); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "cannot create folder",
+		})
+		return
+	}
+
+	//  path จริง
+	savePath := filepath.Join(yearPath, newFileName)
+
+	//  save ไฟล์
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "upload failed",
+		})
+		return
+	}
+
+	// URL
+	fileURL := "/uploads/file/ita/" + year + "/" + newFileName
+
+	//  save DB
+	ita := model.ITA{
+		Title:   title,
+		Year:    year,
+		FileURL: fileURL,
+	}
+
+	if err := database.DB.Create(&ita).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": "save db failed",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    itanew,
+		"data":    ita,
 	})
-
 }
 
 func GetAllITA(c *gin.Context) {
