@@ -2,7 +2,7 @@ package main
 
 import (
 	"hospitalbackend/database"
-	"hospitalbackend/routes" // ⚠️ เปลี่ยนตามชื่อ module ถ้าไม่ตรง
+	"hospitalbackend/routes"
 	"log"
 	"os"
 

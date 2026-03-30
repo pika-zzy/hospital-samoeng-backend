@@ -60,3 +60,17 @@ func StaffOnly() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func EmployeeAndAdminOnly() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		role, exists := c.Get("role")
+		if !exists || role != "employee" && role != "admin" {
+			c.JSON(403, gin.H{"message": "คุณไม่มีสิทธิ์ในการเข้าถึง"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}

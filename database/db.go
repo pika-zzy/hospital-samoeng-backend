@@ -35,7 +35,7 @@ func ConnectDB() {
 	fmt.Println("เชื่อมต่อ Database สำเร็จแล้ว! 🎉")
 
 	// Auto Migrate: สร้างตารางให้อัตโนมัติ ตาม Struct ที่เราเขียน
-	DB.AutoMigrate(&model.News{}, &model.Activity{}, &model.Personnel{}, &model.User{})
+	DB.AutoMigrate(&model.News{}, &model.Activity{}, &model.Personnel{}, &model.User{}, &model.ITA{})
 	// ถ้ามี struct อื่นๆ ก็ใส่เพิ่มในวงเล็บได้เลยครับ
 }
 

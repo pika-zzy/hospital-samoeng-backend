@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Login(c *gin.Context) {
@@ -25,14 +26,14 @@ func Login(c *gin.Context) {
 
 	if err := database.DB.Where("username = ?", inputUser.Username).First(&member).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"message": "user not found",
+			"message": "user not found or wrong password",
 		})
 		return
 	}
 	//ตรวจรหัส
-	if member.Password != inputUser.Password {
+	if err := bcrypt.CompareHashAndPassword([]byte(member.Password), []byte(inputUser.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"message": "wrong password",
+			"message": "user not found or wrong password",
 		})
 		return
 	}
