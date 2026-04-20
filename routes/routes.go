@@ -11,7 +11,7 @@ func SetupRouter() *gin.Engine {
 
 	// Middleware สำหรับ CORS (อนุญาตให้ Frontend ที่รันบนพอร์ต 5173 เข้าถึง API ได้)
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", " * ")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
 
