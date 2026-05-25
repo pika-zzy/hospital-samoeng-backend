@@ -33,6 +33,7 @@ func SetupRouter() *gin.Engine {
 	NewsRoutes(r)
 	ActivityRoutes(r)
 	PersonnelRoutes(r)
-	Itaroute(r)
+	ITARoutes(r)
+	MOITRoutes(r)
 	return r
 }

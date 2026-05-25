@@ -1,21 +1,30 @@
 package routes
 
 import (
-	ita_controller "hospitalbackend/controllers"
+	controllers "hospitalbackend/controllers"
 	"hospitalbackend/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Itaroute(r *gin.Engine) {
-	itaGroup := r.Group("/ita")
+func ITARoutes(r *gin.Engine) {
+
+	auth := middleware.AuthMiddleware()
+	admin := middleware.EmployeeAndAdminOnly()
+
+	// ==================== ITA ====================
+	ita := r.Group("/ita")
 	{
-		itaGroup.GET("", ita_controller.GetAllITA)
-		itaGroup.GET("/:id", ita_controller.GetITAByID)
-		itaGroup.POST("/upload",
-			middleware.AuthMiddleware(),       //อันนี้เช็ค login
-			middleware.EmployeeAndAdminOnly(), //อันนี้เช็ค role adminonly
-			ita_controller.CreateITA,
-		)
+		// YEAR
+		ita.GET("/years", controllers.GetYears)
+		ita.POST("/years", auth, admin, controllers.CreateYear)
+
+		// MOIT (ผูกกับปี)
+		ita.GET("/years/:id/moit", controllers.GetMoitByYear)
+		ita.POST("/years/:id/moit", auth, admin, controllers.CreateMoit)
+
+		// FILE
+		ita.GET("", controllers.GetAllITA)
+		ita.POST("/upload", auth, admin, controllers.UploadITA)
 	}
 }

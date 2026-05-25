@@ -35,8 +35,18 @@ func ConnectDB() {
 	fmt.Println("เชื่อมต่อ Database สำเร็จแล้ว! 🎉")
 
 	// Auto Migrate: สร้างตารางให้อัตโนมัติ ตาม Struct ที่เราเขียน
-	DB.AutoMigrate(&model.News{}, &model.Activity{}, &model.Personnel{}, &model.User{}, &model.ITA{})
-	// ถ้ามี struct อื่นๆ ก็ใส่เพิ่มในวงเล็บได้เลยครับ
+	DB.AutoMigrate(
+		&model.ITAYear{},
+		&model.News{},
+		&model.Activity{},
+		&model.Personnel{},
+		&model.User{},
+		&model.MoitCategory{},
+		&model.MoitTopic{},
+		&model.MoitItem{},
+		&model.ITA{},
+	) // ถ้ามี struct อื่นๆ ก็ใส่เพิ่มในวงเล็บได้เลยครับ
+	DB.Exec("SET FOREIGN_KEY_CHECKS = 1")
 }
 
 func SeedData() {
