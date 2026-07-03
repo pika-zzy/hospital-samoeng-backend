@@ -17,11 +17,16 @@ import (
 
 // ==================== MOIT ====================
 
-// GET /moit
+// GetAllMoit godoc
+// @Summary  list MOIT category ทั้งหมด
+// @Tags     ita
+// @Produce  json
+// @Success  200 {object} map[string]interface{}
+// @Router   /moit [get]
 func GetAllMoit(c *gin.Context) {
 	var moits []models.MoitCategory
 	if err := database.DB.Order("name asc").Find(&moits).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": moits})
@@ -29,14 +34,32 @@ func GetAllMoit(c *gin.Context) {
 
 // ==================== YEAR ====================
 
-// GET /ita/years
+// GetYears godoc
+// @Summary  list ปี ITA ทั้งหมด (เรียงใหม่→เก่า)
+// @Tags     ita
+// @Produce  json
+// @Success  200 {object} map[string]interface{}
+// @Router   /ita/years [get]
 func GetYears(c *gin.Context) {
 	var years []models.ITAYear
-	database.DB.Order("year desc").Find(&years)
+	// FIX: เดิมกลืน error เงียบ ๆ — DB พังก็ตอบ success:true พร้อม data ว่าง
+	if err := database.DB.Order("year desc").Find(&years).Error; err != nil {
+		dbError(c, err)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": years})
 }
 
-// POST /ita/years
+// CreateYear godoc
+// @Summary  สร้างปี ITA ใหม่ (เฉพาะ admin)
+// @Tags     ita
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    body body object{year=int} true "ปี ค.ศ. 2000-2100"
+// @Success  201 {object} map[string]interface{}
+// @Failure  400 {object} map[string]interface{} "ปีไม่ถูกต้อง/ซ้ำ"
+// @Router   /ita/years [post]
 func CreateYear(c *gin.Context) {
 	var body struct {
 		Year int `json:"year"`
@@ -68,7 +91,7 @@ func CreateYear(c *gin.Context) {
 
 	year := models.ITAYear{Year: body.Year}
 	if err := database.DB.Create(&year).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -77,7 +100,15 @@ func CreateYear(c *gin.Context) {
 
 // ==================== ITA ====================
 
-// GET /ita
+// GetAllITA godoc
+// @Summary  list ไฟล์ ITA (filter ตามปี + pagination)
+// @Tags     ita
+// @Produce  json
+// @Param    year_id query int false "filter ตาม year id"
+// @Param    page    query int false "หน้า (default 1)"
+// @Param    limit   query int false "ต่อหน้า (default 20, max 100)"
+// @Success  200 {object} map[string]interface{} "data + meta{total,page,limit}"
+// @Router   /ita [get]
 func GetAllITA(c *gin.Context) {
 	yearIDStr := c.Query("year_id")
 
@@ -112,7 +143,7 @@ func GetAllITA(c *gin.Context) {
 
 	var itas []models.ITA
 	if err := dataQuery.Limit(limit).Offset(offset).Find(&itas).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -127,7 +158,19 @@ func GetAllITA(c *gin.Context) {
 	})
 }
 
-// POST /ita/upload
+// UploadITA godoc
+// @Summary  อัปโหลดไฟล์ PDF เข้า MOIT item (เฉพาะ admin)
+// @Tags     ita
+// @Accept   multipart/form-data
+// @Produce  json
+// @Security BearerAuth
+// @Param    item_id formData int    true  "MOIT item id"
+// @Param    year_id formData int    true  "ITA year id (ต้องตรงกับ item)"
+// @Param    title   formData string false "ชื่อเอกสาร (ไม่ใส่ = ใช้ชื่อไฟล์)"
+// @Param    file    formData file   true  "ไฟล์ PDF"
+// @Success  201 {object} map[string]interface{}
+// @Failure  400 {object} map[string]interface{}
+// @Router   /ita/upload [post]
 func UploadITA(c *gin.Context) {
 	itemIDStr := c.PostForm("item_id")
 	title := c.PostForm("title")
@@ -200,7 +243,7 @@ func UploadITA(c *gin.Context) {
 	if err := database.DB.Create(&ita).Error; err != nil {
 		// DB fail → ลบไฟล์ทิ้ง
 		os.Remove(savePath)
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 

@@ -26,7 +26,13 @@ func parseUintParam(c *gin.Context, key string) (uint, bool) {
 
 // ==================== MOIT ====================
 
-// GET /ita/years/:id/moit
+// GetMoitByYear godoc
+// @Summary  list MOIT ของปีที่เลือก
+// @Tags     moit
+// @Produce  json
+// @Param    id path int true "year id"
+// @Success  200 {object} map[string]interface{}
+// @Router   /ita/years/{id}/moit [get]
 func GetMoitByYear(c *gin.Context) {
 	yearID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -39,7 +45,7 @@ func GetMoitByYear(c *gin.Context) {
 		Order("id asc").
 		Find(&moits).Error; err != nil {
 
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -47,7 +53,16 @@ func GetMoitByYear(c *gin.Context) {
 }
 
 
-// POST /ita/years/:id/moit
+// CreateMoit godoc
+// @Summary  สร้าง MOIT ในปีที่เลือก (เฉพาะ admin)
+// @Tags     moit
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id   path int true "year id"
+// @Param    body body object{name=string,description=string} true "ชื่อ MOIT"
+// @Success  200 {object} map[string]interface{}
+// @Router   /ita/years/{id}/moit [post]
 func CreateMoit(c *gin.Context) {
 	yearID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -60,7 +75,7 @@ func CreateMoit(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลไม่ถูกต้อง"})
 		return
 	}
 
@@ -71,7 +86,7 @@ func CreateMoit(c *gin.Context) {
 	}
 
 	if err := database.DB.Create(&moit).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -79,7 +94,17 @@ func CreateMoit(c *gin.Context) {
 }
 
 
-// PUT /moit/:id
+// UpdateMoit godoc
+// @Summary  แก้ไข MOIT (เฉพาะ admin)
+// @Tags     moit
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id   path int true "moit id"
+// @Param    body body object{name=string,description=string} true "ฟิลด์ที่จะแก้"
+// @Success  200 {object} map[string]interface{}
+// @Failure  404 {object} map[string]interface{}
+// @Router   /moit/{id} [put]
 func UpdateMoit(c *gin.Context) {
 	id, ok := parseUintParam(c, "id")
 	if !ok {
@@ -98,7 +123,7 @@ func UpdateMoit(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลไม่ถูกต้อง"})
 		return
 	}
 
@@ -110,7 +135,7 @@ func UpdateMoit(c *gin.Context) {
 	}
 
 	if err := database.DB.Save(&moit).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -118,7 +143,14 @@ func UpdateMoit(c *gin.Context) {
 }
 
 
-// DELETE /moit/:id
+// DeleteMoit godoc
+// @Summary  ลบ MOIT (เฉพาะ admin, ลูก topic/item/ไฟล์หายตาม CASCADE)
+// @Tags     moit
+// @Produce  json
+// @Security BearerAuth
+// @Param    id path int true "moit id"
+// @Success  200 {object} map[string]interface{}
+// @Router   /moit/{id} [delete]
 func DeleteMoit(c *gin.Context) {
 	id, ok := parseUintParam(c, "id")
 	if !ok {
@@ -126,7 +158,7 @@ func DeleteMoit(c *gin.Context) {
 	}
 
 	if err := database.DB.Delete(&models.MoitCategory{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -136,7 +168,13 @@ func DeleteMoit(c *gin.Context) {
 
 // ==================== TOPIC ====================
 
-// GET /moit/:id/topics
+// GetMoitTopics godoc
+// @Summary  list topic (พร้อม items) ของ MOIT
+// @Tags     moit
+// @Produce  json
+// @Param    id path int true "moit id"
+// @Success  200 {object} map[string]interface{}
+// @Router   /moit/{id}/topics [get]
 func GetMoitTopics(c *gin.Context) {
 	moitID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -152,7 +190,7 @@ func GetMoitTopics(c *gin.Context) {
 		}).
 		Find(&topics).Error; err != nil {
 
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -160,7 +198,16 @@ func GetMoitTopics(c *gin.Context) {
 }
 
 
-// POST /moit/:id/topics
+// CreateTopic godoc
+// @Summary  สร้าง topic ใน MOIT (เฉพาะ admin)
+// @Tags     moit
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id   path int true "moit id"
+// @Param    body body object{label=string} true "ชื่อ topic"
+// @Success  200 {object} map[string]interface{}
+// @Router   /moit/{id}/topics [post]
 func CreateTopic(c *gin.Context) {
 	moitID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -172,7 +219,7 @@ func CreateTopic(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลไม่ถูกต้อง"})
 		return
 	}
 
@@ -182,7 +229,7 @@ func CreateTopic(c *gin.Context) {
 	}
 
 	if err := database.DB.Create(&topic).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -190,7 +237,17 @@ func CreateTopic(c *gin.Context) {
 }
 
 
-// PUT /topics/:id
+// UpdateTopic godoc
+// @Summary  แก้ไข topic (เฉพาะ admin)
+// @Tags     moit
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id   path int true "topic id"
+// @Param    body body object{label=string} true "ชื่อใหม่"
+// @Success  200 {object} map[string]interface{}
+// @Failure  404 {object} map[string]interface{}
+// @Router   /topics/{id} [put]
 func UpdateTopic(c *gin.Context) {
 	id, ok := parseUintParam(c, "id")
 	if !ok {
@@ -208,14 +265,14 @@ func UpdateTopic(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลไม่ถูกต้อง"})
 		return
 	}
 
 	topic.Label = body.Label
 
 	if err := database.DB.Save(&topic).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -223,7 +280,14 @@ func UpdateTopic(c *gin.Context) {
 }
 
 
-// DELETE /topics/:id
+// DeleteTopic godoc
+// @Summary  ลบ topic (เฉพาะ admin)
+// @Tags     moit
+// @Produce  json
+// @Security BearerAuth
+// @Param    id path int true "topic id"
+// @Success  200 {object} map[string]interface{}
+// @Router   /topics/{id} [delete]
 func DeleteTopic(c *gin.Context) {
 	id, ok := parseUintParam(c, "id")
 	if !ok {
@@ -231,7 +295,7 @@ func DeleteTopic(c *gin.Context) {
 	}
 
 	if err := database.DB.Delete(&models.MoitTopic{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -241,7 +305,16 @@ func DeleteTopic(c *gin.Context) {
 
 // ==================== ITEM ====================
 
-// POST /topics/:id/items
+// CreateItem godoc
+// @Summary  สร้าง item ใน topic (เฉพาะ admin)
+// @Tags     moit
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id   path int true "topic id"
+// @Param    body body object{label=string} true "ชื่อ item"
+// @Success  200 {object} map[string]interface{}
+// @Router   /topics/{id}/items [post]
 func CreateItem(c *gin.Context) {
 	topicID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -253,7 +326,7 @@ func CreateItem(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลไม่ถูกต้อง"})
 		return
 	}
 
@@ -263,7 +336,7 @@ func CreateItem(c *gin.Context) {
 	}
 
 	if err := database.DB.Create(&item).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -271,7 +344,17 @@ func CreateItem(c *gin.Context) {
 }
 
 
-// PUT /items/:id
+// UpdateItem godoc
+// @Summary  แก้ไข item (เฉพาะ admin)
+// @Tags     moit
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id   path int true "item id"
+// @Param    body body object{label=string} true "ชื่อใหม่"
+// @Success  200 {object} map[string]interface{}
+// @Failure  404 {object} map[string]interface{}
+// @Router   /items/{id} [put]
 func UpdateItem(c *gin.Context) {
 	id, ok := parseUintParam(c, "id")
 	if !ok {
@@ -289,14 +372,14 @@ func UpdateItem(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลไม่ถูกต้อง"})
 		return
 	}
 
 	item.Label = body.Label
 
 	if err := database.DB.Save(&item).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 
@@ -304,7 +387,14 @@ func UpdateItem(c *gin.Context) {
 }
 
 
-// DELETE /items/:id
+// DeleteItem godoc
+// @Summary  ลบ item (เฉพาะ admin)
+// @Tags     moit
+// @Produce  json
+// @Security BearerAuth
+// @Param    id path int true "item id"
+// @Success  200 {object} map[string]interface{}
+// @Router   /items/{id} [delete]
 func DeleteItem(c *gin.Context) {
 	id, ok := parseUintParam(c, "id")
 	if !ok {
@@ -312,7 +402,7 @@ func DeleteItem(c *gin.Context) {
 	}
 
 	if err := database.DB.Delete(&models.MoitItem{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+		dbError(c, err)
 		return
 	}
 

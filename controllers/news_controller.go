@@ -13,32 +13,43 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetAllNews godoc
+// @Summary  list ข่าวทั้งหมด
+// @Tags     news
+// @Produce  json
+// @Success  200 {object} map[string]interface{}
+// @Router   /news [get]
 func GetAllNews(c *gin.Context) {
 	var news []model.News
 	result := database.DB.Find(&news)
 
 	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": result.Error.Error(),
-		})
+		dbError(c, result.Error)
 		return
 	}
+	// FIX: ตัด message "ยังไม่มีข้อมูลในขณะนี้" ที่ติดมากับ response สำเร็จทุกครั้ง (frontend ไม่ได้ใช้)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    news,
-		"message": "ยังไม่มีข้อมูลในขณะนี้",
 	})
 
 }
 
+// GetNewsByID godoc
+// @Summary  ดูข่าวรายตัว
+// @Tags     news
+// @Produce  json
+// @Param    id path int true "news id"
+// @Success  200 {object} map[string]interface{}
+// @Failure  404 {object} map[string]interface{}
+// @Router   /news/{id} [get]
 func GetNewsByID(c *gin.Context) {
 	id := c.Param("id")
 	// หาข่าวที่ ID ตรงกัน (แบบบ้านๆ ไปก่อน)
 	var news model.News
 	result := database.DB.Where("id = ?", id).First(&news)
 	if result.Error != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "news not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "news not found"})
 		return
 	}
 
@@ -48,6 +59,21 @@ func GetNewsByID(c *gin.Context) {
 	})
 }
 
+// CreateNews godoc
+// @Summary  สร้างข่าวใหม่ (แนบไฟล์ PDF + รูปได้)
+// @Tags     news
+// @Accept   multipart/form-data
+// @Produce  json
+// @Security BearerAuth
+// @Param    title       formData string true  "หัวข้อข่าว"
+// @Param    description formData string false "รายละเอียด"
+// @Param    date        formData string false "วันที่"
+// @Param    type        formData string false "ประเภทข่าว"
+// @Param    file        formData file   false "ไฟล์ PDF"
+// @Param    image       formData file   false "รูปภาพ .jpg/.jpeg/.png"
+// @Success  200 {object} map[string]interface{}
+// @Failure  400 {object} map[string]interface{} "นามสกุลไฟล์ไม่ถูกต้อง"
+// @Router   /news [post]
 func CreateNews(c *gin.Context) {
 	//รับค่าข้อความ (Text Fields) จาก FromData
 	title := c.PostForm("title")
@@ -55,7 +81,8 @@ func CreateNews(c *gin.Context) {
 	date := c.PostForm("date")
 	typeNews := c.PostForm("type")
 	var imgURL string = ""
-	var fileURL string = " " // กำหนดค่าเริ่มต้นเป็นว่าง
+	// FIX: เดิมเป็น " " (มีช่องว่าง) ไม่ใช่สตริงว่าง — frontend เช็ค truthy เลยโชว์ปุ่มดาวน์โหลดทั้งที่ไม่มีไฟล์
+	var fileURL string = ""
 	// รับไฟล์ (File)
 	file, err := c.FormFile("file")
 	if err == nil {
@@ -118,10 +145,7 @@ func CreateNews(c *gin.Context) {
 	}
 	result := database.DB.Create(&news)
 	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": result.Error.Error(),
-		})
+		dbError(c, result.Error)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{

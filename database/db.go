@@ -45,6 +45,7 @@ func ConnectDB() {
 		&model.MoitTopic{},
 		&model.MoitItem{},
 		&model.ITA{},
+		&model.RolePermission{},
 	) // ถ้ามี struct อื่นๆ ก็ใส่เพิ่มในวงเล็บได้เลยครับ
 	DB.Exec("SET FOREIGN_KEY_CHECKS = 1")
 }

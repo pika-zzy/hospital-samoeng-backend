@@ -13,15 +13,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetAllActivities godoc
+// @Summary  list กิจกรรมทั้งหมด
+// @Tags     activities
+// @Produce  json
+// @Success  200 {object} map[string]interface{}
+// @Router   /activities [get]
 func GetAllActivities(c *gin.Context) {
 	var activities []model.Activity
 	result := database.DB.Find(&activities)
 
 	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": result.Error.Error(),
-		})
+		dbError(c, result.Error)
 		return
 	}
 
@@ -31,6 +34,14 @@ func GetAllActivities(c *gin.Context) {
 	})
 }
 
+// GetActivityByID godoc
+// @Summary  ดูกิจกรรมรายตัว
+// @Tags     activities
+// @Produce  json
+// @Param    id path int true "activity id"
+// @Success  200 {object} map[string]interface{}
+// @Failure  404 {object} map[string]interface{}
+// @Router   /activities/{id} [get]
 func GetActivityByID(c *gin.Context) {
 
 	id := c.Param("id")
@@ -52,6 +63,20 @@ func GetActivityByID(c *gin.Context) {
 	})
 }
 
+// CreateActivity godoc
+// @Summary  สร้างกิจกรรมใหม่ (แนบรูปได้)
+// @Tags     activities
+// @Accept   multipart/form-data
+// @Produce  json
+// @Security BearerAuth
+// @Param    title       formData string true  "ชื่อกิจกรรม"
+// @Param    description formData string false "รายละเอียด"
+// @Param    startDate   formData string false "วันเริ่ม"
+// @Param    endDate     formData string false "วันจบ"
+// @Param    image       formData file   false "รูปภาพ .jpg/.jpeg/.png"
+// @Success  200 {object} map[string]interface{}
+// @Failure  400 {object} map[string]interface{} "นามสกุลไฟล์ไม่ถูกต้อง"
+// @Router   /activities [post]
 func CreateActivity(c *gin.Context) {
 
 	title := c.PostForm("title")
@@ -101,10 +126,7 @@ func CreateActivity(c *gin.Context) {
 	result := database.DB.Create(&activity)
 
 	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"success": false,
-			"message": result.Error.Error(),
-		})
+		dbError(c, result.Error)
 		return
 	}
 

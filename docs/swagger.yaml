@@ -1,0 +1,958 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: REST API หลังบ้านเว็บไซต์โรงพยาบาลสะเมิง (ข่าว กิจกรรม บุคลากร ITA/MOIT
+    ผู้ใช้งาน สิทธิ์เมนู)
+  title: Hospital Samoeng API
+  version: "1.0"
+paths:
+  /activities:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list กิจกรรมทั้งหมด
+      tags:
+      - activities
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: ชื่อกิจกรรม
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: รายละเอียด
+        in: formData
+        name: description
+        type: string
+      - description: วันเริ่ม
+        in: formData
+        name: startDate
+        type: string
+      - description: วันจบ
+        in: formData
+        name: endDate
+        type: string
+      - description: รูปภาพ .jpg/.jpeg/.png
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: นามสกุลไฟล์ไม่ถูกต้อง
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: สร้างกิจกรรมใหม่ (แนบรูปได้)
+      tags:
+      - activities
+  /activities/{id}:
+    get:
+      parameters:
+      - description: activity id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ดูกิจกรรมรายตัว
+      tags:
+      - activities
+  /ita:
+    get:
+      parameters:
+      - description: filter ตาม year id
+        in: query
+        name: year_id
+        type: integer
+      - description: หน้า (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: ต่อหน้า (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: data + meta{total,page,limit}
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list ไฟล์ ITA (filter ตามปี + pagination)
+      tags:
+      - ita
+  /ita/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: MOIT item id
+        in: formData
+        name: item_id
+        required: true
+        type: integer
+      - description: ITA year id (ต้องตรงกับ item)
+        in: formData
+        name: year_id
+        required: true
+        type: integer
+      - description: ชื่อเอกสาร (ไม่ใส่ = ใช้ชื่อไฟล์)
+        in: formData
+        name: title
+        type: string
+      - description: ไฟล์ PDF
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: อัปโหลดไฟล์ PDF เข้า MOIT item (เฉพาะ admin)
+      tags:
+      - ita
+  /ita/years:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list ปี ITA ทั้งหมด (เรียงใหม่→เก่า)
+      tags:
+      - ita
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ปี ค.ศ. 2000-2100
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            year:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: ปีไม่ถูกต้อง/ซ้ำ
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: สร้างปี ITA ใหม่ (เฉพาะ admin)
+      tags:
+      - ita
+  /ita/years/{id}/moit:
+    get:
+      parameters:
+      - description: year id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list MOIT ของปีที่เลือก
+      tags:
+      - moit
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: year id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ชื่อ MOIT
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            description:
+              type: string
+            name:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: สร้าง MOIT ในปีที่เลือก (เฉพาะ admin)
+      tags:
+      - moit
+  /items/{id}:
+    delete:
+      parameters:
+      - description: item id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบ item (เฉพาะ admin)
+      tags:
+      - moit
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: item id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ชื่อใหม่
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            label:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ไข item (เฉพาะ admin)
+      tags:
+      - moit
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ข้อมูลล็อกอิน
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            password:
+              type: string
+            username:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: token + ข้อมูล user
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: user ไม่พบหรือรหัสผิด
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: บัญชีถูกปิดใช้งาน
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ล็อกอิน รับ JWT token
+      tags:
+      - auth
+  /moit:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list MOIT category ทั้งหมด
+      tags:
+      - ita
+  /moit/{id}:
+    delete:
+      parameters:
+      - description: moit id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบ MOIT (เฉพาะ admin, ลูก topic/item/ไฟล์หายตาม CASCADE)
+      tags:
+      - moit
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: moit id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ฟิลด์ที่จะแก้
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            description:
+              type: string
+            name:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ไข MOIT (เฉพาะ admin)
+      tags:
+      - moit
+  /moit/{id}/topics:
+    get:
+      parameters:
+      - description: moit id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list topic (พร้อม items) ของ MOIT
+      tags:
+      - moit
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: moit id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ชื่อ topic
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            label:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: สร้าง topic ใน MOIT (เฉพาะ admin)
+      tags:
+      - moit
+  /news:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list ข่าวทั้งหมด
+      tags:
+      - news
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: หัวข้อข่าว
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: รายละเอียด
+        in: formData
+        name: description
+        type: string
+      - description: วันที่
+        in: formData
+        name: date
+        type: string
+      - description: ประเภทข่าว
+        in: formData
+        name: type
+        type: string
+      - description: ไฟล์ PDF
+        in: formData
+        name: file
+        type: file
+      - description: รูปภาพ .jpg/.jpeg/.png
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: นามสกุลไฟล์ไม่ถูกต้อง
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: สร้างข่าวใหม่ (แนบไฟล์ PDF + รูปได้)
+      tags:
+      - news
+  /news/{id}:
+    get:
+      parameters:
+      - description: news id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ดูข่าวรายตัว
+      tags:
+      - news
+  /personnel:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list บุคลากรทั้งหมด
+      tags:
+      - personnel
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: คำนำหน้า
+        in: formData
+        name: prefix
+        required: true
+        type: string
+      - description: ชื่อ
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: นามสกุล
+        in: formData
+        name: lastname
+        required: true
+        type: string
+      - description: เลขประจำตัว
+        in: formData
+        name: uid
+        required: true
+        type: integer
+      - description: ตำแหน่ง
+        in: formData
+        name: role
+        required: true
+        type: string
+      - description: รูปภาพ .jpg/.jpeg/.png
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: เพิ่มบุคลากรใหม่ (แนบรูปได้)
+      tags:
+      - personnel
+  /personnel/{id}:
+    get:
+      parameters:
+      - description: personnel id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ดูบุคลากรรายคน
+      tags:
+      - personnel
+  /roles/{role}/permissions:
+    get:
+      description: ตอบ []string ของ NAV.to เช่น ["/admin/dashboard"] — list ว่าง =
+        ยังไม่เคยตั้งค่า = เห็นทุกเมนู
+      parameters:
+      - description: employee หรือ admin
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: role ไม่ถูกต้อง
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: รายการ menu key ที่ role นี้มองเห็น
+      tags:
+      - roles
+    put:
+      consumes:
+      - application/json
+      description: แทนที่สิทธิ์เดิมทั้งหมดใน transaction เดียว — ห้ามแก้ role admin
+        (เห็นทุกเมนูเสมอ)
+      parameters:
+      - description: employee เท่านั้น (admin แก้ไม่ได้)
+        in: path
+        name: role
+        required: true
+        type: string
+      - description: list ของ menu key (NAV.to)
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            menus:
+              items:
+                type: string
+              type: array
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ตั้งสิทธิ์เมนูของ role ทั้งชุด (เฉพาะ admin)
+      tags:
+      - roles
+  /topics/{id}:
+    delete:
+      parameters:
+      - description: topic id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบ topic (เฉพาะ admin)
+      tags:
+      - moit
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: topic id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ชื่อใหม่
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            label:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ไข topic (เฉพาะ admin)
+      tags:
+      - moit
+  /topics/{id}/items:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: topic id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ชื่อ item
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            label:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: สร้าง item ใน topic (เฉพาะ admin)
+      tags:
+      - moit
+  /users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: list user ทั้งหมด (ไม่ส่ง password กลับ)
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 'role: employee หรือ admin'
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            password:
+              type: string
+            role:
+              type: string
+            username:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: username ซ้ำ
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: สร้าง user ใหม่ (เฉพาะ admin)
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      parameters:
+      - description: user id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: ลบบัญชีตัวเอง
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบ user (เฉพาะ admin, ห้ามลบบัญชีตัวเอง)
+      tags:
+      - users
+    get:
+      parameters:
+      - description: user id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ดูข้อมูล user รายคน (ไม่ส่ง password กลับ)
+      tags:
+      - users
+  /users/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: user id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: สถานะใหม่
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            is_active:
+              type: boolean
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: ข้อมูลผิด/ปิดบัญชีตัวเอง
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: เปิด/ปิดการใช้งานบัญชี (ห้ามปิดบัญชีตัวเอง)
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: ใส่ค่าเป็น "Bearer <token>" (ได้ token จาก POST /login)
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
