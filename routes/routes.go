@@ -49,5 +49,6 @@ func SetupRouter() *gin.Engine {
 	ITARoutes(r)
 	MOITRoutes(r)
 	PermissionRoutes(r)
+	PopupRoutes(r)
 	return r
 }

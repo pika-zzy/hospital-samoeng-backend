@@ -17,5 +17,15 @@ func PersonnelRoutes(r *gin.Engine) {
 			middleware.EmployeeAndAdminOnly(), //อันนี้เช็ค rold adminonly
 			controllers_personnel.AddNewPersonnal,
 		)
+		personnelGroup.PUT("/:id",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			controllers_personnel.UpdatePersonnel,
+		)
+		personnelGroup.DELETE("/:id",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			controllers_personnel.DeletePersonnel,
+		)
 	}
 }
