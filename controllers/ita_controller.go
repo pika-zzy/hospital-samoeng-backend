@@ -56,7 +56,7 @@ func GetYears(c *gin.Context) {
 // @Accept   json
 // @Produce  json
 // @Security BearerAuth
-// @Param    body body object{year=int} true "ปี ค.ศ. 2000-2100"
+// @Param    body body object{year=int} true "ปี พ.ศ. 2500-2600"
 // @Success  201 {object} map[string]interface{}
 // @Failure  400 {object} map[string]interface{} "ปีไม่ถูกต้อง/ซ้ำ"
 // @Router   /ita/years [post]
@@ -70,8 +70,8 @@ func CreateYear(c *gin.Context) {
 		return
 	}
 
-	// validate range
-	if body.Year < 2000 || body.Year > 2100 {
+	// validate range (ปี พ.ศ. — ปีงบประมาณไทย)
+	if body.Year < 2500 || body.Year > 2600 {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ปีไม่ถูกต้อง"})
 		return
 	}
@@ -156,6 +156,37 @@ func GetAllITA(c *gin.Context) {
 			"limit": limit,
 		},
 	})
+}
+
+// DeleteITA godoc
+// @Summary  ลบไฟล์ ITA (เฉพาะ admin)
+// @Tags     ita
+// @Produce  json
+// @Security BearerAuth
+// @Param    id path int true "ITA file id"
+// @Success  200 {object} map[string]interface{}
+// @Failure  404 {object} map[string]interface{} "ไม่พบไฟล์"
+// @Router   /ita/{id} [delete]
+func DeleteITA(c *gin.Context) {
+	id := c.Param("id")
+
+	var ita models.ITA
+	if err := database.DB.First(&ita, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบไฟล์"})
+		return
+	}
+
+	if err := database.DB.Delete(&models.ITA{}, id).Error; err != nil {
+		dbError(c, err)
+		return
+	}
+
+	// ลบไฟล์จริงทิ้งด้วย (best-effort — ไม่ให้ error บล็อก response)
+	if ita.FileURL != "" {
+		os.Remove("." + ita.FileURL)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
 // UploadITA godoc
@@ -248,4 +279,81 @@ func UploadITA(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": ita})
+}
+
+// UpdateITA godoc
+// @Summary  แก้ไขเอกสาร ITA — เปลี่ยนชื่อ และ/หรือ เปลี่ยนไฟล์ PDF (เฉพาะ admin)
+// @Tags     ita
+// @Accept   multipart/form-data
+// @Produce  json
+// @Security BearerAuth
+// @Param    id    path     int    true  "ITA id"
+// @Param    title formData string false "ชื่อเอกสารใหม่"
+// @Param    file  formData file   false "ไฟล์ PDF ใหม่ (ไม่แนบ = ใช้ไฟล์เดิม)"
+// @Success  200 {object} map[string]interface{}
+// @Failure  400 {object} map[string]interface{}
+// @Failure  404 {object} map[string]interface{}
+// @Router   /ita/{id} [put]
+func UpdateITA(c *gin.Context) {
+	id := c.Param("id")
+
+	var ita models.ITA
+	if err := database.DB.First(&ita, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบไฟล์"})
+		return
+	}
+
+	// ชื่อเอกสาร (ถ้าส่งมา)
+	if title := c.PostForm("title"); title != "" {
+		ita.Title = title
+	}
+
+	// ไฟล์ใหม่ (optional) — แนบมา = แทนที่ไฟล์เดิม
+	file, err := c.FormFile("file")
+	if err == nil {
+		ext := filepath.Ext(file.Filename)
+		if ext != ".pdf" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัปโหลดได้เฉพาะ PDF"})
+			return
+		}
+
+		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		savePath := filepath.Join("uploads/ita", newFileName)
+
+		if err := os.MkdirAll("uploads/ita", os.ModePerm); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "สร้างโฟลเดอร์ไม่สำเร็จ"})
+			return
+		}
+
+		if err := c.SaveUploadedFile(file, savePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "บันทึกไฟล์ไม่สำเร็จ"})
+			return
+		}
+
+		oldFileURL := ita.FileURL
+		ita.FileURL = "/uploads/ita/" + newFileName
+
+		// บันทึก DB ก่อน — ถ้าพัง ลบไฟล์ใหม่ทิ้ง คงไฟล์เดิมไว้
+		if err := database.DB.Save(&ita).Error; err != nil {
+			os.Remove(savePath)
+			dbError(c, err)
+			return
+		}
+
+		// สำเร็จ → ลบไฟล์เก่าทิ้ง (best-effort)
+		if oldFileURL != "" {
+			os.Remove("." + oldFileURL)
+		}
+
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": ita})
+		return
+	}
+
+	// ไม่มีไฟล์ใหม่ — บันทึกเฉพาะ field ที่แก้
+	if err := database.DB.Save(&ita).Error; err != nil {
+		dbError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": ita})
 }

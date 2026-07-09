@@ -10,7 +10,8 @@ type Personnel struct {
 	Name     string `json:"name"`
 	Lastname string `json:"lastname"`
 	Uid      int    `json:"uid"`
-	Role     string `json:"role"`
+	Role     string `json:"role"`     // ฝ่ายงาน/แผนก (ใช้ group หน้า public)
+	Position string `json:"position"` // ตำแหน่ง/ชื่อโรค (แยกจากแผนก)
 	ImgURL   string `json:"img_url"`
 
 	gorm.Model `json:"-"`

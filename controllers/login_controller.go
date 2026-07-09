@@ -40,7 +40,6 @@ func Login(c *gin.Context) {
 	if err := database.DB.Where("username = ?", inputUser.Username).First(&member).Error; err != nil {
 		// FIX: เพิ่ม success:false ให้ครบตาม envelope ที่ frontend เช็ค
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
 			"message": "user not found or wrong password",
 		})
 		return

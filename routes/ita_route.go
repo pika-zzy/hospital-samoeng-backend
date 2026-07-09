@@ -26,5 +26,7 @@ func ITARoutes(r *gin.Engine) {
 		// FILE
 		ita.GET("", controllers.GetAllITA)
 		ita.POST("/upload", auth, admin, controllers.UploadITA)
+		ita.PUT("/:id", auth, admin, controllers.UpdateITA)
+		ita.DELETE("/:id", auth, admin, controllers.DeleteITA)
 	}
 }

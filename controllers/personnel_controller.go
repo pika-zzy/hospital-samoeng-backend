@@ -66,7 +66,8 @@ func GetPersonnelByID(c *gin.Context) {
 // @Param    name     formData string true  "ชื่อ"
 // @Param    lastname formData string true  "นามสกุล"
 // @Param    uid      formData int    true  "เลขประจำตัว"
-// @Param    role     formData string true  "ตำแหน่ง"
+// @Param    role     formData string true  "ฝ่ายงาน/แผนก"
+// @Param    position formData string false "ตำแหน่ง"
 // @Param    image    formData file   false "รูปภาพ .jpg/.jpeg/.png"
 // @Success  200 {object} map[string]interface{}
 // @Failure  400 {object} map[string]interface{}
@@ -77,6 +78,7 @@ func AddNewPersonnal(c *gin.Context) {
 	lastname := c.PostForm("lastname")
 	uidstr := c.PostForm("uid")
 	role := c.PostForm("role")
+	position := c.PostForm("position")
 	var imgURL string = ""
 
 	//แปลง uid ให้เป็น int
@@ -119,6 +121,7 @@ func AddNewPersonnal(c *gin.Context) {
 		Lastname: lastname,
 		Uid:      uid,
 		Role:     role,
+		Position: position,
 		ImgURL:   imgURL,
 	}
 
@@ -146,7 +149,8 @@ func AddNewPersonnal(c *gin.Context) {
 // @Param    name     formData string true  "ชื่อ"
 // @Param    lastname formData string true  "นามสกุล"
 // @Param    uid      formData int    true  "เลขประจำตัว"
-// @Param    role     formData string true  "ตำแหน่ง"
+// @Param    role     formData string true  "ฝ่ายงาน/แผนก"
+// @Param    position formData string false "ตำแหน่ง"
 // @Param    image    formData file   false "รูปภาพใหม่ .jpg/.jpeg/.png"
 // @Success  200 {object} map[string]interface{}
 // @Failure  400 {object} map[string]interface{}
@@ -191,6 +195,7 @@ func UpdatePersonnel(c *gin.Context) {
 	personnel.Lastname = c.PostForm("lastname")
 	personnel.Uid = uid
 	personnel.Role = c.PostForm("role")
+	personnel.Position = c.PostForm("position")
 	if newImage != "" {
 		personnel.ImgURL = newImage
 	}

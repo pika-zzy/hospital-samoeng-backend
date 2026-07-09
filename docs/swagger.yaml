@@ -588,10 +588,14 @@ paths:
         name: uid
         required: true
         type: integer
-      - description: ตำแหน่ง
+      - description: ฝ่ายงาน/แผนก
         in: formData
         name: role
         required: true
+        type: string
+      - description: ตำแหน่ง
+        in: formData
+        name: position
         type: string
       - description: รูปภาพ .jpg/.jpeg/.png
         in: formData
@@ -616,6 +620,31 @@ paths:
       tags:
       - personnel
   /personnel/{id}:
+    delete:
+      parameters:
+      - description: personnel id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบบุคลากร (เฉพาะ admin/employee)
+      tags:
+      - personnel
     get:
       parameters:
       - description: personnel id
@@ -639,6 +668,139 @@ paths:
       summary: ดูบุคลากรรายคน
       tags:
       - personnel
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: personnel id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: คำนำหน้า
+        in: formData
+        name: prefix
+        required: true
+        type: string
+      - description: ชื่อ
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: นามสกุล
+        in: formData
+        name: lastname
+        required: true
+        type: string
+      - description: เลขประจำตัว
+        in: formData
+        name: uid
+        required: true
+        type: integer
+      - description: ฝ่ายงาน/แผนก
+        in: formData
+        name: role
+        required: true
+        type: string
+      - description: ตำแหน่ง
+        in: formData
+        name: position
+        type: string
+      - description: รูปภาพใหม่ .jpg/.jpeg/.png
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ไขบุคลากร (เปลี่ยนรูปได้, ไม่แนบรูป = ใช้รูปเดิม)
+      tags:
+      - personnel
+  /popup:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ดึงข้อมูล popup ของเว็บไซต์ (public)
+      tags:
+      - popup
+  /popup/image:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: รูปภาพ .jpg/.jpeg/.png
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: อัปโหลด/เปลี่ยนรูป popup (เฉพาะ admin)
+      tags:
+      - popup
+  /popup/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: สถานะการแสดง
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            status:
+              type: boolean
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: เปิด/ปิดการแสดง popup (เฉพาะ admin)
+      tags:
+      - popup
   /roles/{role}/permissions:
     get:
       description: ตอบ []string ของ NAV.to เช่น ["/admin/dashboard"] — list ว่าง =

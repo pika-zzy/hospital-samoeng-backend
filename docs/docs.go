@@ -922,10 +922,16 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "ตำแหน่ง",
+                        "description": "ฝ่ายงาน/แผนก",
                         "name": "role",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ตำแหน่ง",
+                        "name": "position",
+                        "in": "formData"
                     },
                     {
                         "type": "file",
@@ -980,6 +986,249 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "personnel"
+                ],
+                "summary": "แก้ไขบุคลากร (เปลี่ยนรูปได้, ไม่แนบรูป = ใช้รูปเดิม)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "personnel id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "คำนำหน้า",
+                        "name": "prefix",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ชื่อ",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "นามสกุล",
+                        "name": "lastname",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "เลขประจำตัว",
+                        "name": "uid",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ฝ่ายงาน/แผนก",
+                        "name": "role",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ตำแหน่ง",
+                        "name": "position",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "รูปภาพใหม่ .jpg/.jpeg/.png",
+                        "name": "image",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "personnel"
+                ],
+                "summary": "ลบบุคลากร (เฉพาะ admin/employee)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "personnel id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/popup": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "popup"
+                ],
+                "summary": "ดึงข้อมูล popup ของเว็บไซต์ (public)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/popup/image": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "popup"
+                ],
+                "summary": "อัปโหลด/เปลี่ยนรูป popup (เฉพาะ admin)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "รูปภาพ .jpg/.jpeg/.png",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/popup/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "popup"
+                ],
+                "summary": "เปิด/ปิดการแสดง popup (เฉพาะ admin)",
+                "parameters": [
+                    {
+                        "description": "สถานะการแสดง",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
