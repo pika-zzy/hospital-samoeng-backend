@@ -113,6 +113,72 @@ paths:
       summary: list ไฟล์ ITA (filter ตามปี + pagination)
       tags:
       - ita
+  /ita/{id}:
+    delete:
+      parameters:
+      - description: ITA file id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: ไม่พบไฟล์
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบไฟล์ ITA (เฉพาะ admin)
+      tags:
+      - ita
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: ITA id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ชื่อเอกสารใหม่
+        in: formData
+        name: title
+        type: string
+      - description: ไฟล์ PDF ใหม่ (ไม่แนบ = ใช้ไฟล์เดิม)
+        in: formData
+        name: file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ไขเอกสาร ITA — เปลี่ยนชื่อ และ/หรือ เปลี่ยนไฟล์ PDF (เฉพาะ admin)
+      tags:
+      - ita
   /ita/upload:
     post:
       consumes:
@@ -172,7 +238,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: ปี ค.ศ. 2000-2100
+      - description: ปี พ.ศ. 2500-2600
         in: body
         name: body
         required: true
@@ -528,6 +594,31 @@ paths:
       tags:
       - news
   /news/{id}:
+    delete:
+      parameters:
+      - description: news id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบข่าว (เฉพาะ admin/employee)
+      tags:
+      - news
     get:
       parameters:
       - description: news id
@@ -549,6 +640,63 @@ paths:
             additionalProperties: true
             type: object
       summary: ดูข่าวรายตัว
+      tags:
+      - news
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: news id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: หัวข้อข่าว
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: รายละเอียด
+        in: formData
+        name: description
+        type: string
+      - description: วันที่
+        in: formData
+        name: date
+        type: string
+      - description: ประเภทข่าว
+        in: formData
+        name: type
+        type: string
+      - description: ไฟล์ PDF ใหม่
+        in: formData
+        name: file
+        type: file
+      - description: รูปภาพใหม่ .jpg/.jpeg/.png
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ไขข่าว (เปลี่ยนไฟล์/รูปได้, ไม่แนบ = ใช้ของเดิม)
       tags:
       - news
   /personnel:
@@ -583,11 +731,6 @@ paths:
         name: lastname
         required: true
         type: string
-      - description: เลขประจำตัว
-        in: formData
-        name: uid
-        required: true
-        type: integer
       - description: ฝ่ายงาน/แผนก
         in: formData
         name: role
@@ -692,11 +835,6 @@ paths:
         name: lastname
         required: true
         type: string
-      - description: เลขประจำตัว
-        in: formData
-        name: uid
-        required: true
-        type: integer
       - description: ฝ่ายงาน/แผนก
         in: formData
         name: role

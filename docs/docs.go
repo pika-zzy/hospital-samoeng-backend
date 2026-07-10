@@ -278,7 +278,7 @@ const docTemplate = `{
                 "summary": "สร้างปี ITA ใหม่ (เฉพาะ admin)",
                 "parameters": [
                     {
-                        "description": "ปี ค.ศ. 2000-2100",
+                        "description": "ปี พ.ศ. 2500-2600",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -383,6 +383,108 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/ita/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ita"
+                ],
+                "summary": "แก้ไขเอกสาร ITA — เปลี่ยนชื่อ และ/หรือ เปลี่ยนไฟล์ PDF (เฉพาะ admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ITA id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ชื่อเอกสารใหม่",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "ไฟล์ PDF ใหม่ (ไม่แนบ = ใช้ไฟล์เดิม)",
+                        "name": "file",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ita"
+                ],
+                "summary": "ลบไฟล์ ITA (เฉพาะ admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ITA file id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "ไม่พบไฟล์",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -854,6 +956,131 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "news"
+                ],
+                "summary": "แก้ไขข่าว (เปลี่ยนไฟล์/รูปได้, ไม่แนบ = ใช้ของเดิม)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "news id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "หัวข้อข่าว",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "รายละเอียด",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "วันที่",
+                        "name": "date",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ประเภทข่าว",
+                        "name": "type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "ไฟล์ PDF ใหม่",
+                        "name": "file",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "รูปภาพใหม่ .jpg/.jpeg/.png",
+                        "name": "image",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "news"
+                ],
+                "summary": "ลบข่าว (เฉพาะ admin/employee)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "news id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/personnel": {
@@ -910,13 +1137,6 @@ const docTemplate = `{
                         "type": "string",
                         "description": "นามสกุล",
                         "name": "lastname",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "เลขประจำตัว",
-                        "name": "uid",
                         "in": "formData",
                         "required": true
                     },
@@ -1035,13 +1255,6 @@ const docTemplate = `{
                         "type": "string",
                         "description": "นามสกุล",
                         "name": "lastname",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "เลขประจำตัว",
-                        "name": "uid",
                         "in": "formData",
                         "required": true
                     },

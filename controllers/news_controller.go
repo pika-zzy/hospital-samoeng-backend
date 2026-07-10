@@ -7,6 +7,7 @@ import (
 	"hospitalbackend/database"
 
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -152,4 +153,134 @@ func CreateNews(c *gin.Context) {
 		"success": true,
 		"data":    news,
 	})
+}
+
+// UpdateNews godoc
+// @Summary  แก้ไขข่าว (เปลี่ยนไฟล์/รูปได้, ไม่แนบ = ใช้ของเดิม)
+// @Tags     news
+// @Accept   multipart/form-data
+// @Produce  json
+// @Security BearerAuth
+// @Param    id          path     int    true  "news id"
+// @Param    title       formData string true  "หัวข้อข่าว"
+// @Param    description formData string false "รายละเอียด"
+// @Param    date        formData string false "วันที่"
+// @Param    type        formData string false "ประเภทข่าว"
+// @Param    file        formData file   false "ไฟล์ PDF ใหม่"
+// @Param    image       formData file   false "รูปภาพใหม่ .jpg/.jpeg/.png"
+// @Success  200 {object} map[string]interface{}
+// @Failure  400 {object} map[string]interface{}
+// @Failure  404 {object} map[string]interface{}
+// @Router   /news/{id} [put]
+func UpdateNews(c *gin.Context) {
+	id := c.Param("id")
+
+	var news model.News
+	if err := database.DB.First(&news, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบข่าว"})
+		return
+	}
+
+	// ไฟล์ใหม่ (ถ้าแนบมา) — เก็บ path เก่าไว้ลบหลังบันทึกสำเร็จ
+	oldFile := news.FileURL
+	oldImage := news.ImgURL
+	newFile := ""
+	newImage := ""
+
+	if file, err := c.FormFile("file"); err == nil {
+		ext := filepath.Ext(file.Filename)
+		if ext != ".pdf" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัพโหลดได้เฉพาะไฟล์ PDF เท่านั้น"})
+			return
+		}
+		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		savePath := filepath.Join("uploads/file/news", newFileName)
+		if err := c.SaveUploadedFile(file, savePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "บันทึกไฟล์ไม่สำเร็จ"})
+			return
+		}
+		newFile = "/uploads/file/news/" + newFileName
+	}
+
+	if img, err := c.FormFile("image"); err == nil {
+		ext := filepath.Ext(img.Filename)
+		if ext != ".jpg" && ext != ".png" && ext != ".jpeg" {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัพโหลดได้เฉพาะไฟล์รูปภาพ"})
+			return
+		}
+		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+		savePath := filepath.Join("uploads/images/news", newFileName)
+		if err := c.SaveUploadedFile(img, savePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "บันทึกไฟล์ไม่สำเร็จ"})
+			return
+		}
+		newImage = "/uploads/images/news/" + newFileName
+	}
+
+	news.Title = c.PostForm("title")
+	news.Description = c.PostForm("description")
+	news.Date = c.PostForm("date")
+	news.Type = c.PostForm("type")
+	if newFile != "" {
+		news.FileURL = newFile
+	}
+	if newImage != "" {
+		news.ImgURL = newImage
+	}
+
+	if err := database.DB.Save(&news).Error; err != nil {
+		// DB พลาด → ลบไฟล์ใหม่ที่เพิ่งบันทึกทิ้ง (ไม่ให้มีไฟล์ขยะค้าง)
+		if newFile != "" {
+			os.Remove("." + newFile)
+		}
+		if newImage != "" {
+			os.Remove("." + newImage)
+		}
+		dbError(c, err)
+		return
+	}
+
+	// บันทึกสำเร็จ → ลบไฟล์เก่าที่ถูกแทนที่ทิ้ง (best-effort)
+	if newFile != "" && oldFile != "" {
+		os.Remove("." + oldFile)
+	}
+	if newImage != "" && oldImage != "" {
+		os.Remove("." + oldImage)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": news})
+}
+
+// DeleteNews godoc
+// @Summary  ลบข่าว (เฉพาะ admin/employee)
+// @Tags     news
+// @Produce  json
+// @Security BearerAuth
+// @Param    id path int true "news id"
+// @Success  200 {object} map[string]interface{}
+// @Failure  404 {object} map[string]interface{}
+// @Router   /news/{id} [delete]
+func DeleteNews(c *gin.Context) {
+	id := c.Param("id")
+
+	var news model.News
+	if err := database.DB.First(&news, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบข่าว"})
+		return
+	}
+
+	if err := database.DB.Delete(&model.News{}, id).Error; err != nil {
+		dbError(c, err)
+		return
+	}
+
+	// ลบไฟล์แนบทิ้งด้วย (best-effort — ไม่ให้ error บล็อก response)
+	if news.FileURL != "" {
+		os.Remove("." + news.FileURL)
+	}
+	if news.ImgURL != "" {
+		os.Remove("." + news.ImgURL)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }

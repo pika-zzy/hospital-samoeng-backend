@@ -18,6 +18,16 @@ func NewsRoutes(r *gin.Engine) {
 			middleware.EmployeeAndAdminOnly(), //อันนี้เช็ค role adminonly
 			controllers_news.CreateNews,
 		)
+		newsGroup.PUT("/:id",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			controllers_news.UpdateNews,
+		)
+		newsGroup.DELETE("/:id",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			controllers_news.DeleteNews,
+		)
 	}
 
 }

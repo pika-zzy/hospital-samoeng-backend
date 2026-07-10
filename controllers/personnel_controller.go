@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -65,7 +64,6 @@ func GetPersonnelByID(c *gin.Context) {
 // @Param    prefix   formData string true  "คำนำหน้า"
 // @Param    name     formData string true  "ชื่อ"
 // @Param    lastname formData string true  "นามสกุล"
-// @Param    uid      formData int    true  "เลขประจำตัว"
 // @Param    role     formData string true  "ฝ่ายงาน/แผนก"
 // @Param    position formData string false "ตำแหน่ง"
 // @Param    image    formData file   false "รูปภาพ .jpg/.jpeg/.png"
@@ -76,17 +74,9 @@ func AddNewPersonnal(c *gin.Context) {
 	prefix := c.PostForm("prefix")
 	name := c.PostForm("name")
 	lastname := c.PostForm("lastname")
-	uidstr := c.PostForm("uid")
 	role := c.PostForm("role")
 	position := c.PostForm("position")
 	var imgURL string = ""
-
-	//แปลง uid ให้เป็น int
-	uid, err := strconv.Atoi(uidstr)
-	if err != nil {
-		c.JSON(400, gin.H{"success": false, "message": "uid must be number"})
-		return
-	}
 
 	file, err := c.FormFile("image")
 	if err == nil {
@@ -119,7 +109,6 @@ func AddNewPersonnal(c *gin.Context) {
 		Prefix:   prefix,
 		Name:     name,
 		Lastname: lastname,
-		Uid:      uid,
 		Role:     role,
 		Position: position,
 		ImgURL:   imgURL,
@@ -148,7 +137,6 @@ func AddNewPersonnal(c *gin.Context) {
 // @Param    prefix   formData string true  "คำนำหน้า"
 // @Param    name     formData string true  "ชื่อ"
 // @Param    lastname formData string true  "นามสกุล"
-// @Param    uid      formData int    true  "เลขประจำตัว"
 // @Param    role     formData string true  "ฝ่ายงาน/แผนก"
 // @Param    position formData string false "ตำแหน่ง"
 // @Param    image    formData file   false "รูปภาพใหม่ .jpg/.jpeg/.png"
@@ -162,12 +150,6 @@ func UpdatePersonnel(c *gin.Context) {
 	var personnel model.Personnel
 	if err := database.DB.First(&personnel, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบบุคลากร"})
-		return
-	}
-
-	uid, err := strconv.Atoi(c.PostForm("uid"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "uid must be number"})
 		return
 	}
 
@@ -193,7 +175,6 @@ func UpdatePersonnel(c *gin.Context) {
 	personnel.Prefix = c.PostForm("prefix")
 	personnel.Name = c.PostForm("name")
 	personnel.Lastname = c.PostForm("lastname")
-	personnel.Uid = uid
 	personnel.Role = c.PostForm("role")
 	personnel.Position = c.PostForm("position")
 	if newImage != "" {
