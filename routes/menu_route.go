@@ -14,7 +14,7 @@ func MenuRoutes(r *gin.Engine) {
 		menuGroup.GET("/:id", controllers_menu.GetMenuByID)
 		menuGroup.POST("",
 			middleware.AuthMiddleware(),       //อันนี้เช็ค login
-			middleware.EmployeeAndAdminOnly(), //อันนี้เช็ค role adminonly
+			middleware.EmployeeAndAdminOnly(), //อันนี้เช็ค role — employee กับ admin เท่านั้น
 			controllers_menu.AddNewMenu,
 		)
 		menuGroup.PUT("/:id",

@@ -1,4 +1,24 @@
 basePath: /
+definitions:
+  model.Menu:
+    properties:
+      color:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      icon:
+        type: string
+      id:
+        type: integer
+      link:
+        type: string
+      menu_name:
+        type: string
+      updated_at:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -87,6 +107,116 @@ paths:
       summary: ดูกิจกรรมรายตัว
       tags:
       - activities
+  /hero:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list รูปสไลด์ hero หน้าแรก (เรียงตามลำดับ)
+      tags:
+      - hero
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: รูปภาพ .jpg/.jpeg/.png
+        in: formData
+        name: image
+        required: true
+        type: file
+      - description: ลำดับการแสดง (ยิ่งน้อยยิ่งขึ้นก่อน)
+        in: formData
+        name: order
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: เพิ่มรูปสไลด์ hero (admin)
+      tags:
+      - hero
+  /hero/{id}:
+    delete:
+      parameters:
+      - description: hero slide id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: เหลือรูปเดียว ลบไม่ได้
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบรูปสไลด์ hero (admin) — ห้ามลบจนเหลือ 0 รูป
+      tags:
+      - hero
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: hero slide id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ลำดับใหม่ เช่น {\
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties:
+            type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ลำดับรูปสไลด์ hero (admin)
+      tags:
+      - hero
   /ita:
     get:
       parameters:
@@ -411,6 +541,134 @@ paths:
       summary: ล็อกอิน รับ JWT token
       tags:
       - auth
+  /menu:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: list เมนูทั้งหมด
+      tags:
+      - menu
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ข้อมูลเมนู
+        in: body
+        name: menu
+        required: true
+        schema:
+          $ref: '#/definitions/model.Menu'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: สร้างเมนูใหม่
+      tags:
+      - menu
+  /menu/{id}:
+    delete:
+      parameters:
+      - description: menu id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบเมนู (เฉพาะ admin/employee)
+      tags:
+      - menu
+    get:
+      parameters:
+      - description: menu id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: ดูเมนูรายตัว
+      tags:
+      - menu
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: menu id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ข้อมูลเมนู
+        in: body
+        name: menu
+        required: true
+        schema:
+          $ref: '#/definitions/model.Menu'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ไขเมนู
+      tags:
+      - menu
   /moit:
     get:
       produces:
