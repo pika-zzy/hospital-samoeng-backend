@@ -1,0 +1,10 @@
+CREATE TABLE menu (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    menu_name VARCHAR(255) NOT NULL COMMENT 'ชื่อเมนู',
+    description TEXT COMMENT 'รายละเอียด',
+    link VARCHAR(500) COMMENT 'ลิงค์',
+    icon VARCHAR(255) COMMENT 'ไอค่อน',
+    color VARCHAR(50) COMMENT 'สี',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

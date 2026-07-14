@@ -46,6 +46,7 @@ func SetupRouter() *gin.Engine {
 	NewsRoutes(r)
 	ActivityRoutes(r)
 	PersonnelRoutes(r)
+	MenuRoutes(r)
 	ITARoutes(r)
 	MOITRoutes(r)
 	PermissionRoutes(r)
