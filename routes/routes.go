@@ -50,5 +50,6 @@ func SetupRouter() *gin.Engine {
 	MOITRoutes(r)
 	PermissionRoutes(r)
 	PopupRoutes(r)
+	HeroRoutes(r)
 	return r
 }

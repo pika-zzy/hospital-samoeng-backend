@@ -48,6 +48,7 @@ func ConnectDB() {
 		&model.ITA{},
 		&model.RolePermission{},
 		&model.Popup{},
+		&model.HeroSlide{},
 	); err != nil { // ถ้ามี struct อื่นๆ ก็ใส่เพิ่มในวงเล็บได้เลยครับ
 		log.Fatal("AutoMigrate ไม่สำเร็จ: ", err)
 	}
