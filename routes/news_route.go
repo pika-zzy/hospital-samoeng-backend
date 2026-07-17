@@ -14,9 +14,19 @@ func NewsRoutes(r *gin.Engine) {
 		newsGroup.GET("", controllers_news.GetAllNews)
 		newsGroup.GET("/:id", controllers_news.GetNewsByID)
 		newsGroup.POST("",
-			middleware.AuthMiddleware(), //อันนี้เช็ค login
-			middleware.StaffOnly(),      //อันนี้เช็ค role adminonly
+			middleware.AuthMiddleware(),       //อันนี้เช็ค login
+			middleware.EmployeeAndAdminOnly(), //อันนี้เช็ค role adminonly
 			controllers_news.CreateNews,
+		)
+		newsGroup.PUT("/:id",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			controllers_news.UpdateNews,
+		)
+		newsGroup.DELETE("/:id",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			controllers_news.DeleteNews,
 		)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hospitalbackend/utils"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,8 +22,13 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// ตัด Bearer ออก
-		tokenString := authHeader[len("Bearer "):]
+		// FIX: เช็ค prefix "Bearer " ก่อนตัด — ของเดิม slice ตรง ๆ ทำให้ panic ได้ถ้า header สั้นกว่า 7 ตัวอักษร
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			c.JSON(401, gin.H{"success": false, "message": "invalid token"})
+			c.Abort()
+			return
+		}
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		claims := &utils.Claims{}
 
@@ -52,6 +58,20 @@ func StaffOnly() gin.HandlerFunc {
 
 		role, exists := c.Get("role")
 		if !exists || role != "admin" {
+			c.JSON(403, gin.H{"message": "คุณไม่มีสิทธิ์ในการเข้าถึง"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func EmployeeAndAdminOnly() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		role, exists := c.Get("role")
+		if !exists || role != "employee" && role != "admin" {
 			c.JSON(403, gin.H{"message": "คุณไม่มีสิทธิ์ในการเข้าถึง"})
 			c.Abort()
 			return
