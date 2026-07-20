@@ -10,16 +10,20 @@ import (
 type Claims struct {
 	UserID uint
 	Role   string
+	// TokenVersion — snapshot ของ User.TokenVersion ตอนออก token (CRIT-01)
+	// middleware เทียบค่านี้กับค่าปัจจุบันใน DB — ไม่ตรง = token ถูกเพิกถอนแล้ว
+	TokenVersion int
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID uint, role string) (string, error) {
+func GenerateToken(userID uint, role string, tokenVersion int) (string, error) {
 
 	expirationTime := time.Now().Add(24 * time.Hour)
 
 	claims := &Claims{
-		UserID: userID,
-		Role:   role,
+		UserID:       userID,
+		Role:         role,
+		TokenVersion: tokenVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},

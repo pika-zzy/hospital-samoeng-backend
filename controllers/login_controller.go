@@ -62,7 +62,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateToken(member.ID, member.Role)
+	token, err := utils.GenerateToken(member.ID, member.Role, member.TokenVersion)
 
 	if err != nil {
 		// FIX: log error ฝั่ง server + ใช้ constant แทนเลข 500 ดิบ
@@ -148,7 +148,13 @@ func UpdateUserStatus(c *gin.Context) {
 		return
 	}
 
-	if err := database.DB.Model(&user).Update("is_active", *body.IsActive).Error; err != nil {
+	// CRIT-01: ปิดใช้งานบัญชี → bump token_version เพื่อเพิกถอน token ที่ปล่อยไปแล้วทันที
+	// (ไม่งั้น user ที่ถูกปิดยังใช้ token เดิมได้จนหมดอายุ 24 ชม.)
+	updates := map[string]interface{}{"is_active": *body.IsActive}
+	if !*body.IsActive {
+		updates["token_version"] = gorm.Expr("token_version + 1")
+	}
+	if err := database.DB.Model(&user).Updates(updates).Error; err != nil {
 		log.Println("UpdateUserStatus error:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"})
 		return
@@ -298,4 +304,30 @@ func DeleteUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "ลบผู้ใช้งานสำเร็จ"})
+}
+
+// Logout godoc
+// @Summary  ออกจากระบบ (เพิกถอน token ปัจจุบันฝั่ง server)
+// @Description bump token_version ของตัวเอง → token ทุกใบของ user นี้ใช้ไม่ได้อีก (logout ทุกอุปกรณ์)
+// @Tags     auth
+// @Produce  json
+// @Security BearerAuth
+// @Success  200 {object} map[string]interface{}
+// @Router   /logout [post]
+func Logout(c *gin.Context) {
+	// userID มาจาก AuthMiddleware (route นี้ติด auth ไว้)
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "unauthorized"})
+		return
+	}
+
+	// CRIT-01: bump token_version → เพิกถอน token ปัจจุบันทันที (ไม่รอหมดอายุ 24 ชม.)
+	if err := database.DB.Model(&model.User{}).Where("id = ?", userID).
+		Update("token_version", gorm.Expr("token_version + 1")).Error; err != nil {
+		dbError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "ออกจากระบบสำเร็จ"})
 }
