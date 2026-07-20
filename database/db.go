@@ -34,7 +34,19 @@ func ConnectDB() {
 
 	fmt.Println("เชื่อมต่อ Database สำเร็จแล้ว! 🎉")
 
-	// Auto Migrate: สร้างตารางให้อัตโนมัติ ตาม Struct ที่เราเขียน
+	// Auto Migrate จะทำงานเฉพาะเมื่อ env RUN_MIGRATE=true เท่านั้น
+	// ปกติ (บน production) ปล่อยว่าง/false → ไม่แตะ schema เลย
+	// เวลาจะเพิ่ม/แก้ตาราง: ตั้ง RUN_MIGRATE=true ชั่วคราว → deploy รอบเดียว → ตั้งกลับเป็น false
+	if os.Getenv("RUN_MIGRATE") == "true" {
+		runAutoMigrate()
+	} else {
+		fmt.Println("ข้าม AutoMigrate (RUN_MIGRATE != true) — ใช้ schema เดิมของ Database")
+	}
+}
+
+// runAutoMigrate: สร้าง/อัปเดตตารางตาม Struct ที่เราเขียน (เฉพาะเพิ่ม column/index ที่ขาด ไม่ลบข้อมูล)
+// เพิ่ม model ใหม่ ให้มาเติมในวงเล็บนี้
+func runAutoMigrate() {
 	// FIX: เดิมไม่เช็ค error ของ AutoMigrate — ถ้า migrate ตารางไหนพัง จะเงียบ (ตารางไม่ถูกสร้างโดยไม่มีสัญญาณ)
 	if err := DB.AutoMigrate(
 		&model.ITAYear{},
@@ -50,10 +62,11 @@ func ConnectDB() {
 		&model.Popup{},
 		&model.HeroSlide{},
 		&model.Menu{},
-	); err != nil { // ถ้ามี struct อื่นๆ ก็ใส่เพิ่มในวงเล็บได้เลยครับ
+	); err != nil {
 		log.Fatal("AutoMigrate ไม่สำเร็จ: ", err)
 	}
 	DB.Exec("SET FOREIGN_KEY_CHECKS = 1")
+	fmt.Println("AutoMigrate สำเร็จ ✅")
 }
 
 func SeedData() {
