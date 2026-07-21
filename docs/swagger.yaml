@@ -538,7 +538,29 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "429":
+          description: พยายามเข้าสู่ระบบบ่อยเกินไป (rate limit)
+          schema:
+            additionalProperties: true
+            type: object
       summary: ล็อกอิน รับ JWT token
+      tags:
+      - auth
+  /logout:
+    post:
+      description: bump token_version ของตัวเอง → token ทุกใบของ user นี้ใช้ไม่ได้อีก
+        (logout ทุกอุปกรณ์)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ออกจากระบบ (เพิกถอน token ปัจจุบันฝั่ง server)
       tags:
       - auth
   /menu:

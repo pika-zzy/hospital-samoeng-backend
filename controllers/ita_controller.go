@@ -189,6 +189,16 @@ func DeleteITA(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
 
+// itaYearPaths คืน (โฟลเดอร์บนดิสก์, prefix ของ URL) สำหรับเก็บไฟล์ ITA แยกตามปี
+// year = เลขปี พ.ศ. เช่น 2567 → ("uploads/file/ita/2567", "/uploads/file/ita/2567/")
+// ใช้ base "uploads/file/ita" ให้ตรงกับโฟลเดอร์ปีเดิม (2568/2569) และ convention news
+// หมายเหตุ: URL ใช้ / เสมอ ส่วน path บนดิสก์ใช้ filepath.Join (แยกกันตามแพลตฟอร์ม)
+func itaYearPaths(year int) (dir string, urlPrefix string) {
+	dir = filepath.Join("uploads/file/ita", strconv.Itoa(year))
+	urlPrefix = fmt.Sprintf("/uploads/file/ita/%d/", year)
+	return
+}
+
 // UploadITA godoc
 // @Summary  อัปโหลดไฟล์ PDF เข้า MOIT item (เฉพาะ admin)
 // @Tags     ita
@@ -220,9 +230,9 @@ func UploadITA(c *gin.Context) {
 		return
 	}
 
-	// validate item + relation ในครั้งเดียว
+	// validate item + relation ในครั้งเดียว (preload Year ไว้ใช้ตั้งชื่อโฟลเดอร์ด้วย)
 	var item models.MoitItem
-	if err := database.DB.Preload("Topic.Moit").First(&item, itemID).Error; err != nil {
+	if err := database.DB.Preload("Topic.Moit.Year").First(&item, itemID).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ไม่พบ item"})
 		return
 	}
@@ -246,11 +256,13 @@ func UploadITA(c *gin.Context) {
 		return
 	}
 
+	// แยกไฟล์ตามปีที่อัปโหลด → uploads/file/ita/<ปี>/... (เช่น uploads/file/ita/2567/)
+	dir, urlPrefix := itaYearPaths(item.Topic.Moit.Year.Year)
 	newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-	savePath := filepath.Join("uploads/ita", newFileName)
+	savePath := filepath.Join(dir, newFileName)
 
-	// สร้างโฟลเดอร์อัตโนมัติ
-	if err := os.MkdirAll("uploads/ita", os.ModePerm); err != nil {
+	// สร้างโฟลเดอร์ปีอัตโนมัติ
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "สร้างโฟลเดอร์ไม่สำเร็จ"})
 		return
 	}
@@ -267,7 +279,7 @@ func UploadITA(c *gin.Context) {
 	ita := models.ITA{
 		ItemID:  uint(itemID),
 		Title:   title,
-		FileURL: "/uploads/ita/" + newFileName,
+		FileURL: urlPrefix + newFileName,
 		YearID:  uint(yearID),
 	}
 
@@ -298,7 +310,7 @@ func UpdateITA(c *gin.Context) {
 	id := c.Param("id")
 
 	var ita models.ITA
-	if err := database.DB.First(&ita, id).Error; err != nil {
+	if err := database.DB.Preload("Year").First(&ita, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบไฟล์"})
 		return
 	}
@@ -317,10 +329,12 @@ func UpdateITA(c *gin.Context) {
 			return
 		}
 
+		// แยกไฟล์ตามปีของเอกสารนี้ → uploads/file/ita/<ปี>/ (โฟลเดอร์เดียวกับตอนอัปโหลด)
+		dir, urlPrefix := itaYearPaths(ita.Year.Year)
 		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-		savePath := filepath.Join("uploads/ita", newFileName)
+		savePath := filepath.Join(dir, newFileName)
 
-		if err := os.MkdirAll("uploads/ita", os.ModePerm); err != nil {
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "สร้างโฟลเดอร์ไม่สำเร็จ"})
 			return
 		}
@@ -331,7 +345,7 @@ func UpdateITA(c *gin.Context) {
 		}
 
 		oldFileURL := ita.FileURL
-		ita.FileURL = "/uploads/ita/" + newFileName
+		ita.FileURL = urlPrefix + newFileName
 
 		// บันทึก DB ก่อน — ถ้าพัง ลบไฟล์ใหม่ทิ้ง คงไฟล์เดิมไว้
 		if err := database.DB.Save(&ita).Error; err != nil {

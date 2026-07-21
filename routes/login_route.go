@@ -9,7 +9,8 @@ import (
 
 func LoginRoute(r *gin.Engine) {
 
-	r.POST("/login", controller_login.Login)
+	// CRIT-02: rate limit ต่อ IP กัน brute force — เกินโควตาตอบ 429 (ผูกเฉพาะ /login)
+	r.POST("/login", middleware.LoginRateLimit(), controller_login.Login)
 
 	// logout — ต้อง login อยู่ก่อน (auth) เพื่อรู้ว่าใครออก แล้ว bump token_version ของตัวเอง
 	r.POST("/logout", middleware.AuthMiddleware(), controller_login.Logout)

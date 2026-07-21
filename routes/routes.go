@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"log"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -10,9 +12,38 @@ import (
 	_ "hospitalbackend/docs" // เอกสาร Swagger ที่ generate จาก `swag init`
 )
 
+// trustedProxies คืนรายการ CIDR/IP ของ proxy ที่เชื่อถือ (Traefik/Dokploy)
+// อ่านจาก env TRUSTED_PROXIES (คั่นด้วย comma) — ไม่ตั้งค่า = private ranges มาตรฐาน
+// จำเป็นต่อความถูกต้องของ c.ClientIP(): ถ้าเชื่อทุก proxy (default ของ Gin) client
+// ปลอม X-Forwarded-For แล้ว bypass rate limit ได้; ถ้าไม่เชื่อเลย ทุกคนจะเห็นเป็น IP
+// ของ Traefik ตัวเดียวแล้วโดน 429 ร่วมกัน
+func trustedProxies() []string {
+	if v := os.Getenv("TRUSTED_PROXIES"); v != "" {
+		parts := strings.Split(v, ",")
+		out := make([]string, 0, len(parts))
+		for _, p := range parts {
+			if p = strings.TrimSpace(p); p != "" {
+				out = append(out, p)
+			}
+		}
+		if len(out) > 0 {
+			return out
+		}
+	}
+	// default: เชื่อเฉพาะช่วง private (Docker/Traefik อยู่ใน network ภายใน) + loopback
+	// ⚠️ ควรตรวจ subnet จริงของ Dokploy หลัง deploy แล้วรัดให้แคบลงผ่าน TRUSTED_PROXIES
+	return []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.1/32", "::1/128"}
+}
+
 func SetupRouter() *gin.Engine {
 
 	r := gin.Default()
+
+	// CRIT-02: ตั้ง trusted proxies ให้ c.ClientIP() อ่าน IP client จริงหลัง Traefik
+	// ค่าผิด = security misconfig → fail fast
+	if err := r.SetTrustedProxies(trustedProxies()); err != nil {
+		log.Fatal("SetTrustedProxies ไม่สำเร็จ (ตรวจค่า TRUSTED_PROXIES): ", err)
+	}
 
 	// Swagger UI ที่ /swagger/index.html — เปิดเฉพาะตอนตั้ง ENABLE_SWAGGER=true ใน .env
 	// ปิดโดย default กันเผยโครงสร้าง API ทั้งหมดบน production

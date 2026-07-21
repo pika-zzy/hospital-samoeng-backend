@@ -805,6 +805,39 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": true
                         }
+                    },
+                    "429": {
+                        "description": "พยายามเข้าสู่ระบบบ่อยเกินไป (rate limit)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "bump token_version ของตัวเอง → token ทุกใบของ user นี้ใช้ไม่ได้อีก (logout ทุกอุปกรณ์)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "ออกจากระบบ (เพิกถอน token ปัจจุบันฝั่ง server)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
                     }
                 }
             }

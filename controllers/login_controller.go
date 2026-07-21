@@ -22,6 +22,7 @@ import (
 // @Success  200 {object} map[string]interface{} "token + ข้อมูล user"
 // @Failure  401 {object} map[string]interface{} "user ไม่พบหรือรหัสผิด"
 // @Failure  403 {object} map[string]interface{} "บัญชีถูกปิดใช้งาน"
+// @Failure  429 {object} map[string]interface{} "พยายามเข้าสู่ระบบบ่อยเกินไป (rate limit)"
 // @Router   /login [post]
 func Login(c *gin.Context) {
 	var inputUser model.User
