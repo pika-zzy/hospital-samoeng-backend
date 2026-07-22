@@ -84,6 +84,31 @@ paths:
       tags:
       - activities
   /activities/{id}:
+    delete:
+      parameters:
+      - description: activity id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบกิจกรรม (เฉพาะ admin/employee)
+      tags:
+      - activities
     get:
       parameters:
       - description: activity id
@@ -105,6 +130,59 @@ paths:
             additionalProperties: true
             type: object
       summary: ดูกิจกรรมรายตัว
+      tags:
+      - activities
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: activity id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ชื่อกิจกรรม
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: รายละเอียด
+        in: formData
+        name: description
+        type: string
+      - description: วันเริ่ม
+        in: formData
+        name: startDate
+        type: string
+      - description: วันจบ
+        in: formData
+        name: endDate
+        type: string
+      - description: รูปภาพใหม่ .jpg/.jpeg/.png
+        in: formData
+        name: image
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ไขกิจกรรม (เปลี่ยนรูปได้, ไม่แนบรูป = ใช้รูปเดิม)
       tags:
       - activities
   /hero:

@@ -43,15 +43,21 @@ func GetHeroSlides(c *gin.Context) {
 // @Failure  400 {object} map[string]interface{}
 // @Router   /hero [post]
 func CreateHeroSlide(c *gin.Context) {
+	// CRIT-03: จำกัดขนาด body รวม (รูป + field) แล้ว parse ทันที
+	if err := enforceUploadLimit(c, MaxImageBytes+maxFormOverhead); err != nil {
+		uploadLimitError(c, err)
+		return
+	}
+
 	file, err := c.FormFile("image")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "กรุณาแนบรูปภาพ"})
 		return
 	}
 
-	ext := filepath.Ext(file.Filename)
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัพโหลดได้เฉพาะไฟล์รูปภาพ (.jpg/.jpeg/.png)"})
+	ext, verr := validateUpload(file, allowedImageExt, MaxImageBytes)
+	if verr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 		return
 	}
 

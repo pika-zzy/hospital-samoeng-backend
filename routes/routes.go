@@ -39,6 +39,10 @@ func SetupRouter() *gin.Engine {
 
 	r := gin.Default()
 
+	// CRIT-03: ลด RAM buffer ของ multipart parsing จาก default 32MB → 8MB
+	// (เพดานขนาด body จริงบังคับต่อ handler ด้วย MaxBytesReader ใน enforceUploadLimit)
+	r.MaxMultipartMemory = 8 << 20
+
 	// CRIT-02: ตั้ง trusted proxies ให้ c.ClientIP() อ่าน IP client จริงหลัง Traefik
 	// ค่าผิด = security misconfig → fail fast
 	if err := r.SetTrustedProxies(trustedProxies()); err != nil {

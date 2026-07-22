@@ -76,6 +76,12 @@ func GetNewsByID(c *gin.Context) {
 // @Failure  400 {object} map[string]interface{} "นามสกุลไฟล์ไม่ถูกต้อง"
 // @Router   /news [post]
 func CreateNews(c *gin.Context) {
+	// CRIT-03: จำกัดขนาด body รวม (PDF + รูป + field) แล้ว parse ทันที — ต้องมาก่อนอ่าน field ใด ๆ
+	if err := enforceUploadLimit(c, MaxPDFBytes+MaxImageBytes+maxFormOverhead); err != nil {
+		uploadLimitError(c, err)
+		return
+	}
+
 	//รับค่าข้อความ (Text Fields) จาก FromData
 	title := c.PostForm("title")
 	description := c.PostForm("description")
@@ -87,11 +93,10 @@ func CreateNews(c *gin.Context) {
 	// รับไฟล์ (File)
 	file, err := c.FormFile("file")
 	if err == nil {
-		// ถ้ามีไฟล์ถูกอัปโหลดมา ให้บันทึกไฟล์ลงในโฟลเดอร์ "uploads"
-		ext := filepath.Ext(file.Filename) // ดึงนามสกุลไฟล์
-		//สั่ง บันทึกไฟล์ลงในโฟลเดอร์ "uploads"
-		if ext != ".pdf" {
-			c.JSON(400, gin.H{"success": false, "message": "อัพโหลดได้เฉพาะไฟล์ PDF เท่านั้น"})
+		// ตรวจ ขนาด + นามสกุล (case-insensitive) + เนื้อหาไฟล์จริง
+		ext, verr := validateUpload(file, allowedPDFExt, MaxPDFBytes)
+		if verr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 			return
 		}
 		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext) // สร้างชื่อไฟล์ใหม่แบบไม่ซ้ำ
@@ -110,13 +115,9 @@ func CreateNews(c *gin.Context) {
 
 	if err == nil {
 
-		ext := filepath.Ext(file.Filename)
-
-		if ext != ".jpg" && ext != ".png" && ext != ".jpeg" {
-			c.JSON(400, gin.H{
-				"success": false,
-				"message": "อัพโหลดได้เฉพาะไฟล์รูปภาพ",
-			})
+		ext, verr := validateUpload(file, allowedImageExt, MaxImageBytes)
+		if verr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 			return
 		}
 
@@ -175,6 +176,12 @@ func CreateNews(c *gin.Context) {
 func UpdateNews(c *gin.Context) {
 	id := c.Param("id")
 
+	// CRIT-03: จำกัดขนาด body รวม (PDF + รูป + field) แล้ว parse ทันที
+	if err := enforceUploadLimit(c, MaxPDFBytes+MaxImageBytes+maxFormOverhead); err != nil {
+		uploadLimitError(c, err)
+		return
+	}
+
 	var news model.News
 	if err := database.DB.First(&news, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบข่าว"})
@@ -188,9 +195,9 @@ func UpdateNews(c *gin.Context) {
 	newImage := ""
 
 	if file, err := c.FormFile("file"); err == nil {
-		ext := filepath.Ext(file.Filename)
-		if ext != ".pdf" {
-			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัพโหลดได้เฉพาะไฟล์ PDF เท่านั้น"})
+		ext, verr := validateUpload(file, allowedPDFExt, MaxPDFBytes)
+		if verr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 			return
 		}
 		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
@@ -203,9 +210,9 @@ func UpdateNews(c *gin.Context) {
 	}
 
 	if img, err := c.FormFile("image"); err == nil {
-		ext := filepath.Ext(img.Filename)
-		if ext != ".jpg" && ext != ".png" && ext != ".jpeg" {
-			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัพโหลดได้เฉพาะไฟล์รูปภาพ"})
+		ext, verr := validateUpload(img, allowedImageExt, MaxImageBytes)
+		if verr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 			return
 		}
 		newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)

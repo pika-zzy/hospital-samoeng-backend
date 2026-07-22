@@ -71,6 +71,12 @@ func GetPersonnelByID(c *gin.Context) {
 // @Failure  400 {object} map[string]interface{}
 // @Router   /personnel [post]
 func AddNewPersonnal(c *gin.Context) {
+	// CRIT-03: จำกัดขนาด body รวม (รูป + field) แล้ว parse ทันที
+	if err := enforceUploadLimit(c, MaxImageBytes+maxFormOverhead); err != nil {
+		uploadLimitError(c, err)
+		return
+	}
+
 	prefix := c.PostForm("prefix")
 	name := c.PostForm("name")
 	lastname := c.PostForm("lastname")
@@ -80,13 +86,9 @@ func AddNewPersonnal(c *gin.Context) {
 
 	file, err := c.FormFile("image")
 	if err == nil {
-		ext := filepath.Ext(file.Filename)
-
-		if ext != ".jpg" && ext != ".png" && ext != ".jpeg" {
-			c.JSON(400, gin.H{
-				"success": false,
-				"message": "อัพโหลดได้เฉพาะไฟล์รูปภาพ",
-			})
+		ext, verr := validateUpload(file, allowedImageExt, MaxImageBytes)
+		if verr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 			return
 		}
 
@@ -147,6 +149,12 @@ func AddNewPersonnal(c *gin.Context) {
 func UpdatePersonnel(c *gin.Context) {
 	id := c.Param("id")
 
+	// CRIT-03: จำกัดขนาด body รวม (รูป + field) แล้ว parse ทันที
+	if err := enforceUploadLimit(c, MaxImageBytes+maxFormOverhead); err != nil {
+		uploadLimitError(c, err)
+		return
+	}
+
 	var personnel model.Personnel
 	if err := database.DB.First(&personnel, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบบุคลากร"})
@@ -157,9 +165,9 @@ func UpdatePersonnel(c *gin.Context) {
 	oldImage := personnel.ImgURL
 	newImage := ""
 	if file, err := c.FormFile("image"); err == nil {
-		ext := filepath.Ext(file.Filename)
-		if ext != ".jpg" && ext != ".png" && ext != ".jpeg" {
-			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัพโหลดได้เฉพาะไฟล์รูปภาพ"})
+		ext, verr := validateUpload(file, allowedImageExt, MaxImageBytes)
+		if verr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 			return
 		}
 

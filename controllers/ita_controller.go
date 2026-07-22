@@ -213,6 +213,12 @@ func itaYearPaths(year int) (dir string, urlPrefix string) {
 // @Failure  400 {object} map[string]interface{}
 // @Router   /ita/upload [post]
 func UploadITA(c *gin.Context) {
+	// CRIT-03: จำกัดขนาด body รวม (PDF + field) แล้ว parse ทันที — ต้องมาก่อนอ่าน field ใด ๆ
+	if err := enforceUploadLimit(c, MaxPDFBytes+maxFormOverhead); err != nil {
+		uploadLimitError(c, err)
+		return
+	}
+
 	itemIDStr := c.PostForm("item_id")
 	title := c.PostForm("title")
 	yearIDStr := c.PostForm("year_id")
@@ -250,9 +256,9 @@ func UploadITA(c *gin.Context) {
 		return
 	}
 
-	ext := filepath.Ext(file.Filename)
-	if ext != ".pdf" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัปโหลดได้เฉพาะ PDF"})
+	ext, verr := validateUpload(file, allowedPDFExt, MaxPDFBytes)
+	if verr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 		return
 	}
 
@@ -309,6 +315,12 @@ func UploadITA(c *gin.Context) {
 func UpdateITA(c *gin.Context) {
 	id := c.Param("id")
 
+	// CRIT-03: จำกัดขนาด body รวม (PDF + field) แล้ว parse ทันที
+	if err := enforceUploadLimit(c, MaxPDFBytes+maxFormOverhead); err != nil {
+		uploadLimitError(c, err)
+		return
+	}
+
 	var ita models.ITA
 	if err := database.DB.Preload("Year").First(&ita, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": "ไม่พบไฟล์"})
@@ -323,9 +335,9 @@ func UpdateITA(c *gin.Context) {
 	// ไฟล์ใหม่ (optional) — แนบมา = แทนที่ไฟล์เดิม
 	file, err := c.FormFile("file")
 	if err == nil {
-		ext := filepath.Ext(file.Filename)
-		if ext != ".pdf" {
-			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัปโหลดได้เฉพาะ PDF"})
+		ext, verr := validateUpload(file, allowedPDFExt, MaxPDFBytes)
+		if verr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 			return
 		}
 

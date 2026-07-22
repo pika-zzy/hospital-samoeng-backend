@@ -87,15 +87,21 @@ func UpdatePopupStatus(c *gin.Context) {
 // @Failure  400 {object} map[string]interface{}
 // @Router   /popup/image [post]
 func UploadPopupImage(c *gin.Context) {
+	// CRIT-03: จำกัดขนาด body รวม (รูป + field) แล้ว parse ทันที
+	if err := enforceUploadLimit(c, MaxImageBytes+maxFormOverhead); err != nil {
+		uploadLimitError(c, err)
+		return
+	}
+
 	file, err := c.FormFile("image")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "กรุณาแนบรูปภาพ"})
 		return
 	}
 
-	ext := filepath.Ext(file.Filename)
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "อัปโหลดได้เฉพาะไฟล์รูปภาพ (.jpg/.jpeg/.png)"})
+	ext, verr := validateUpload(file, allowedImageExt, MaxImageBytes)
+	if verr != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 		return
 	}
 
