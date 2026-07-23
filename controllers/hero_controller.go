@@ -97,18 +97,18 @@ func CreateHeroSlide(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": slide})
 }
 
-// UpdateHeroSlideOrder godoc
-// @Summary  แก้ลำดับรูปสไลด์ hero (admin)
+// UpdateHeroSlide godoc
+// @Summary  แก้รูปสไลด์ hero — ลำดับ และ/หรือ ข้อความ overlay (admin)
 // @Tags     hero
 // @Accept   json
 // @Produce  json
 // @Security BearerAuth
 // @Param    id   path int true "hero slide id"
-// @Param    body body map[string]int true "ลำดับใหม่ เช่น {\"order\": 2}"
+// @Param    body body object{order=int,badge=string,title=string,subtitle=string,button_text=string,button_link=string,show_text=bool} true "ส่งเฉพาะ field ที่ต้องการแก้ (nil = ไม่แตะ)"
 // @Success  200 {object} map[string]interface{}
 // @Failure  404 {object} map[string]interface{}
 // @Router   /hero/{id} [put]
-func UpdateHeroSlideOrder(c *gin.Context) {
+func UpdateHeroSlide(c *gin.Context) {
 	id := c.Param("id")
 
 	var slide model.HeroSlide
@@ -117,15 +117,45 @@ func UpdateHeroSlideOrder(c *gin.Context) {
 		return
 	}
 
+	// pointer ทุกตัว เพื่อแยก "ไม่ส่ง field" (nil = ไม่แตะ) ออกจาก "ส่งค่าว่าง"
 	var body struct {
-		Order *int `json:"order"`
+		Order      *int    `json:"order"`
+		Badge      *string `json:"badge"`
+		Title      *string `json:"title"`
+		Subtitle   *string `json:"subtitle"`
+		ButtonText *string `json:"button_text"`
+		ButtonLink *string `json:"button_link"`
+		ShowText   *bool   `json:"show_text"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.Order == nil {
+	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ข้อมูลไม่ถูกต้อง"})
 		return
 	}
 
-	slide.Order = *body.Order
+	// อัปเดตเฉพาะ field ที่ส่งมา
+	if body.Order != nil {
+		slide.Order = *body.Order
+	}
+	if body.Badge != nil {
+		slide.Badge = *body.Badge
+	}
+	if body.Title != nil {
+		slide.Title = *body.Title
+	}
+	if body.Subtitle != nil {
+		slide.Subtitle = *body.Subtitle
+	}
+	if body.ButtonText != nil {
+		slide.ButtonText = *body.ButtonText
+	}
+	if body.ButtonLink != nil {
+		slide.ButtonLink = *body.ButtonLink
+	}
+	if body.ShowText != nil {
+		slide.ShowText = *body.ShowText
+	}
+
+	// Save เขียนทั้ง struct — ShowText=false ก็ถูกบันทึกจริง (ไม่โดน zero-value skip แบบ Updates)
 	if err := database.DB.Save(&slide).Error; err != nil {
 		dbError(c, err)
 		return

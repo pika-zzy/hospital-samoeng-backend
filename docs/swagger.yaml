@@ -269,13 +269,26 @@ paths:
         name: id
         required: true
         type: integer
-      - description: ลำดับใหม่ เช่น {\
+      - description: ส่งเฉพาะ field ที่ต้องการแก้ (nil = ไม่แตะ)
         in: body
         name: body
         required: true
         schema:
-          additionalProperties:
-            type: integer
+          properties:
+            badge:
+              type: string
+            button_link:
+              type: string
+            button_text:
+              type: string
+            order:
+              type: integer
+            show_text:
+              type: boolean
+            subtitle:
+              type: string
+            title:
+              type: string
           type: object
       produces:
       - application/json
@@ -292,7 +305,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: แก้ลำดับรูปสไลด์ hero (admin)
+      summary: แก้รูปสไลด์ hero — ลำดับ และ/หรือ ข้อความ overlay (admin)
       tags:
       - hero
   /ita:

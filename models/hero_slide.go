@@ -15,4 +15,13 @@ type HeroSlide struct {
 
 	ImageURL string `gorm:"not null;default:''" json:"image_url"` // เช่น "/uploads/images/hero/xxx.jpg"
 	Order    int    `gorm:"column:sort_order;not null;default:0" json:"order"`
+
+	// ข้อความ overlay ต่อสไลด์ (admin แก้เอง) — ว่าง = ไม่แสดงส่วนนั้น
+	// ShowText คุมทั้งก้อน: false = โชว์แค่รูปเปล่า (รูปเพิ่มใหม่ default false จนกว่าจะตั้งข้อความ)
+	Badge      string `gorm:"default:''" json:"badge"`
+	Title      string `gorm:"default:''" json:"title"`
+	Subtitle   string `gorm:"default:''" json:"subtitle"`
+	ButtonText string `gorm:"column:button_text;default:''" json:"button_text"`
+	ButtonLink string `gorm:"column:button_link;default:''" json:"button_link"`
+	ShowText   bool   `gorm:"column:show_text;not null;default:false" json:"show_text"`
 }

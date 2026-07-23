@@ -19,7 +19,7 @@ func HeroRoutes(r *gin.Engine) {
 
 		// admin — เพิ่มรูป / แก้ลำดับ / ลบ (ลบรูปสุดท้ายไม่ได้)
 		hero.POST("", auth, admin, controllers.CreateHeroSlide)
-		hero.PUT("/:id", auth, admin, controllers.UpdateHeroSlideOrder)
+		hero.PUT("/:id", auth, admin, controllers.UpdateHeroSlide)
 		hero.DELETE("/:id", auth, admin, controllers.DeleteHeroSlide)
 	}
 }
