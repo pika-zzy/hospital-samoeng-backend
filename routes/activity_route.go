@@ -18,6 +18,16 @@ func ActivityRoutes(r *gin.Engine) {
 			middleware.EmployeeAndAdminOnly(), //อันนี้เช็ค role adminonly
 			activity_controller.CreateActivity,
 		)
+		activityGroup.PUT("/:id",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			activity_controller.UpdateActivity,
+		)
+		activityGroup.DELETE("/:id",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			activity_controller.DeleteActivity,
+		)
 	}
 
 }

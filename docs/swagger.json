@@ -129,6 +129,125 @@
                         }
                     }
                 }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "activities"
+                ],
+                "summary": "แก้ไขกิจกรรม (เปลี่ยนรูปได้, ไม่แนบรูป = ใช้รูปเดิม)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "activity id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ชื่อกิจกรรม",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "รายละเอียด",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "วันเริ่ม",
+                        "name": "startDate",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "วันจบ",
+                        "name": "endDate",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "รูปภาพใหม่ .jpg/.jpeg/.png",
+                        "name": "image",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "activities"
+                ],
+                "summary": "ลบกิจกรรม (เฉพาะ admin/employee)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "activity id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/hero": {
@@ -215,7 +334,7 @@
                 "tags": [
                     "hero"
                 ],
-                "summary": "แก้ลำดับรูปสไลด์ hero (admin)",
+                "summary": "แก้รูปสไลด์ hero — ลำดับ และ/หรือ ข้อความ overlay (admin)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -225,14 +344,34 @@
                         "required": true
                     },
                     {
-                        "description": "ลำดับใหม่ เช่น {\\",
+                        "description": "ส่งเฉพาะ field ที่ต้องการแก้ (nil = ไม่แตะ)",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "integer"
+                            "properties": {
+                                "badge": {
+                                    "type": "string"
+                                },
+                                "button_link": {
+                                    "type": "string"
+                                },
+                                "button_text": {
+                                    "type": "string"
+                                },
+                                "order": {
+                                    "type": "integer"
+                                },
+                                "show_text": {
+                                    "type": "boolean"
+                                },
+                                "subtitle": {
+                                    "type": "string"
+                                },
+                                "title": {
+                                    "type": "string"
+                                }
                             }
                         }
                     }
