@@ -54,7 +54,9 @@ func SetupRouter() *gin.Engine {
 	if os.Getenv("ENABLE_SWAGGER") == "true" {
 		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	}
-	r.Static("/uploads", "./uploads") // ให้ Gin เสิร์ฟไฟล์จากโฟลเดอร์ uploads
+	// ไฟล์อัปโหลด (public ไม่มี auth) — ย้ายจาก r.Static มาเป็น handler ของตัวเอง
+	// เพื่อรองรับ ?download= ที่บังคับดาวน์โหลดข้าม origin ได้ ดู routes/uploads_route.go
+	UploadsRoute(r)
 
 	// Middleware สำหรับ CORS (อนุญาตให้ Frontend ที่รันบนพอร์ต 5173 เข้าถึง API ได้)
 	r.Use(func(c *gin.Context) {
@@ -87,5 +89,6 @@ func SetupRouter() *gin.Engine {
 	PermissionRoutes(r)
 	PopupRoutes(r)
 	HeroRoutes(r)
+	ContentRoutes(r)
 	return r
 }

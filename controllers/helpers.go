@@ -37,7 +37,19 @@ const (
 var (
 	allowedImageExt = map[string]bool{".jpg": true, ".jpeg": true, ".png": true}
 	allowedPDFExt   = map[string]bool{".pdf": true}
+
+	// ITA รับได้ทั้ง PDF และรูป — MOIT บางข้อขอหลักฐานเป็นภาพถ่าย/อินโฟกราฟิก
+	// (เช่น MOIT20 "ให้จัดทำอินโฟกราฟิกการเข้าร่วมกิจกรรมวันต่อต้านคอร์รัปชัน")
+	allowedITAExt = map[string]bool{".pdf": true, ".jpg": true, ".jpeg": true, ".png": true}
 )
+
+// itaMaxBytes — เพดานขนาดตามชนิดไฟล์ที่ ITA รับ (รูปเล็กกว่า PDF)
+func itaMaxBytes(filename string) int64 {
+	if strings.ToLower(filepath.Ext(filename)) == ".pdf" {
+		return MaxPDFBytes
+	}
+	return MaxImageBytes
+}
 
 // enforceUploadLimit จำกัดขนาด body รวมของคำขอ (C1) แล้ว parse multipart ทันที
 // ต้องเรียกเป็นด่านแรกสุดของ upload handler ก่อนอ่าน field/ไฟล์ใด ๆ —
