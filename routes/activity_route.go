@@ -28,6 +28,19 @@ func ActivityRoutes(r *gin.Engine) {
 			middleware.EmployeeAndAdminOnly(),
 			activity_controller.DeleteActivity,
 		)
+
+		// อัลบั้มรูปของกิจกรรม — รูปปกยังจัดการที่ POST/PUT /activities เหมือนเดิม
+		// เพดานรวม (ปก + อัลบั้ม) = model.MaxActivityImages บังคับใน controller
+		activityGroup.POST("/:id/images",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			activity_controller.AddActivityImages,
+		)
+		activityGroup.DELETE("/:id/images/:imageId",
+			middleware.AuthMiddleware(),
+			middleware.EmployeeAndAdminOnly(),
+			activity_controller.DeleteActivityImage,
+		)
 	}
 
 }

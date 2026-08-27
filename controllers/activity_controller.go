@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // GetAllActivities godoc
@@ -22,7 +23,11 @@ import (
 // @Router   /activities [get]
 func GetAllActivities(c *gin.Context) {
 	var activities []model.Activity
-	result := database.DB.Find(&activities)
+	// Preload อัลบั้ม: ทุก endpoint ของ activity คืน images มาด้วยเสมอ frontend จะได้ไม่ต้องเดา
+	// (14 กิจกรรม x ไม่เกิน 7 รูป — เป็น query เพิ่มอีกอันเดียว ไม่ใช่ N+1)
+	result := database.DB.
+		Preload("Images", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order ASC, id ASC") }).
+		Find(&activities)
 
 	if result.Error != nil {
 		dbError(c, result.Error)
@@ -48,7 +53,9 @@ func GetActivityByID(c *gin.Context) {
 	id := c.Param("id")
 
 	var activity model.Activity
-	result := database.DB.Where("id = ?", id).First(&activity)
+	result := database.DB.
+		Preload("Images", func(db *gorm.DB) *gorm.DB { return db.Order("sort_order ASC, id ASC") }).
+		Where("id = ?", id).First(&activity)
 
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -231,7 +238,16 @@ func DeleteActivity(c *gin.Context) {
 		return
 	}
 
+	// อ่านรูปในอัลบั้มไว้ก่อนลบ เอาไว้ตามไปลบไฟล์บนดิสก์
+	// (Activity ใช้ soft delete ของ gorm — FK ON DELETE CASCADE จึงไม่ทำงาน ต้องลบแถวเอง)
+	var images []model.ActivityImage
+	database.DB.Where("activity_id = ?", activity.ID).Find(&images)
+
 	if err := database.DB.Delete(&model.Activity{}, id).Error; err != nil {
+		dbError(c, err)
+		return
+	}
+	if err := database.DB.Where("activity_id = ?", activity.ID).Delete(&model.ActivityImage{}).Error; err != nil {
 		dbError(c, err)
 		return
 	}
@@ -239,6 +255,11 @@ func DeleteActivity(c *gin.Context) {
 	// ลบไฟล์รูปทิ้งด้วย (best-effort — ไม่ให้ error บล็อก response)
 	if activity.ImgURL != "" {
 		os.Remove("." + activity.ImgURL)
+	}
+	for _, img := range images {
+		if img.ImgURL != "" {
+			os.Remove("." + img.ImgURL)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})

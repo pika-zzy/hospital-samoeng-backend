@@ -185,6 +185,412 @@ paths:
       summary: แก้ไขกิจกรรม (เปลี่ยนรูปได้, ไม่แนบรูป = ใช้รูปเดิม)
       tags:
       - activities
+  /activities/{id}/images:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: activity id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: รูป .jpg/.jpeg/.png (ส่งซ้ำ field เดิมได้หลายไฟล์)
+        in: formData
+        name: images
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: ไฟล์ไม่ถูกต้อง หรือรูปเกินเพดาน
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: เพิ่มรูปเข้าอัลบั้มกิจกรรม (ครั้งละหลายรูปได้)
+      tags:
+      - activities
+  /activities/{id}/images/{imageId}:
+    delete:
+      parameters:
+      - description: activity id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: activity image id
+        in: path
+        name: imageId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบรูปหนึ่งใบออกจากอัลบั้มกิจกรรม
+      tags:
+      - activities
+  /content/files/{id}:
+    delete:
+      parameters:
+      - description: file id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบไฟล์ออกจากหัวข้อ
+      tags:
+      - content
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: file id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: label, sort_order
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ชื่อที่แสดง/ลำดับของไฟล์ (ไม่เปลี่ยนตัวไฟล์)
+      tags:
+      - content
+  /content/groups/{id}:
+    delete:
+      parameters:
+      - description: group id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบหัวข้อ พร้อมไฟล์ที่แนบอยู่ใต้หัวข้อนั้น
+      tags:
+      - content
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: group id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: title, body, year, sort_order
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้หัวข้อในหน้าเนื้อหา
+      tags:
+      - content
+  /content/groups/{id}/files:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: group id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: ไฟล์ .pdf/.jpg/.jpeg/.png (ส่งซ้ำ field เดิมได้หลายไฟล์)
+        in: formData
+        name: files
+        required: true
+        type: file
+      - description: ชื่อที่จะแสดงของแต่ละไฟล์ เรียงตรงลำดับกับ files
+        in: formData
+        name: labels
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แนบไฟล์เข้าหัวข้อ (ครั้งละหลายไฟล์ได้)
+      tags:
+      - content
+  /content/sections:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: รายชื่อหน้าเนื้อหาทั้งหมด (ไม่รวมหัวข้อ/ไฟล์ข้างใน)
+      tags:
+      - content
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: slug, title, description, sort_order
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: เพิ่มหน้าเนื้อหาใหม่
+      tags:
+      - content
+  /content/sections/{slug}:
+    delete:
+      parameters:
+      - description: slug ของหน้า
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: ลบหน้าเนื้อหา พร้อมหัวข้อและไฟล์ทั้งหมดข้างใน
+      tags:
+      - content
+    get:
+      parameters:
+      - description: slug ของหน้า เช่น drug-safety
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: หน้าเนื้อหา 1 หน้า พร้อมหัวข้อและไฟล์ทั้งหมด
+      tags:
+      - content
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: slug ของหน้า
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: title, description, sort_order
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: แก้ชื่อ/คำอธิบาย/ลำดับของหน้าเนื้อหา
+      tags:
+      - content
+  /content/sections/{slug}/groups:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: slug ของหน้า
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: title, body, year (พ.ศ. หรือ null), sort_order
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: เพิ่มหัวข้อในหน้าเนื้อหา
+      tags:
+      - content
   /hero:
     get:
       produces:
@@ -568,7 +974,7 @@ paths:
         name: id
         required: true
         type: integer
-      - description: ชื่อใหม่
+      - description: ชื่อใหม่ + ข้อแม่ (ไม่ส่ง = ไม่แตะ, null = ขึ้นชั้นบนสุด)
         in: body
         name: body
         required: true
@@ -576,6 +982,8 @@ paths:
           properties:
             label:
               type: string
+            parent_id:
+              type: integer
           type: object
       produces:
       - application/json
@@ -1445,7 +1853,7 @@ paths:
         name: id
         required: true
         type: integer
-      - description: ชื่อ item
+      - description: ชื่อ item + ข้อแม่ (parent_id ไม่ใส่/null = ข้อชั้นบนสุด)
         in: body
         name: body
         required: true
@@ -1453,6 +1861,8 @@ paths:
           properties:
             label:
               type: string
+            parent_id:
+              type: integer
           type: object
       produces:
       - application/json

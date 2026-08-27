@@ -135,6 +135,11 @@ func GetAllITA(c *gin.Context) {
 	// data query
 	dataQuery := database.DB.
 		Preload("Item.Topic.Moit").
+		// ข้อแม่ของข้อรอง — จำเป็นสำหรับหน้าเว็บที่ต้องวาดชั้นซ้อน เพราะข้อแม่
+		// (เช่น "2. มีแบบสรุปผลฯ") มักไม่มีไฟล์ของตัวเอง จึงไม่โผล่ในลิสต์ไฟล์เลย
+		// ถ้าไม่ preload มา frontend จะรู้แค่ ParentID แต่ไม่รู้ชื่อหัวข้อแม่
+		Preload("Item.Parent").
+		Preload("Topic.Moit"). // ไฟล์ที่แนบกับหัวข้อตรง ๆ (ไม่มีข้อรอง)
 		Preload("Year")
 
 	if yearIDStr != "" {
@@ -193,6 +198,18 @@ func DeleteITA(c *gin.Context) {
 // year = เลขปี พ.ศ. เช่น 2567 → ("uploads/file/ita/2567", "/uploads/file/ita/2567/")
 // ใช้ base "uploads/file/ita" ให้ตรงกับโฟลเดอร์ปีเดิม (2568/2569) และ convention news
 // หมายเหตุ: URL ใช้ / เสมอ ส่วน path บนดิสก์ใช้ filepath.Join (แยกกันตามแพลตฟอร์ม)
+// parseOptionalID แปลง form field เป็น id — คืน ok=false เมื่อไม่ส่งมา/ว่าง/ไม่ใช่ตัวเลข
+func parseOptionalID(raw string) (uint, bool) {
+	if raw == "" {
+		return 0, false
+	}
+	v, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil || v == 0 {
+		return 0, false
+	}
+	return uint(v), true
+}
+
 func itaYearPaths(year int) (dir string, urlPrefix string) {
 	dir = filepath.Join("uploads/file/ita", strconv.Itoa(year))
 	urlPrefix = fmt.Sprintf("/uploads/file/ita/%d/", year)
@@ -219,16 +236,8 @@ func UploadITA(c *gin.Context) {
 		return
 	}
 
-	itemIDStr := c.PostForm("item_id")
 	title := c.PostForm("title")
 	yearIDStr := c.PostForm("year_id")
-
-	// parse IDs
-	itemID, err := strconv.ParseUint(itemIDStr, 10, 64)
-	if err != nil || itemID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "item_id ไม่ถูกต้อง"})
-		return
-	}
 
 	yearID, err := strconv.ParseUint(yearIDStr, 10, 64)
 	if err != nil || yearID == 0 {
@@ -236,17 +245,40 @@ func UploadITA(c *gin.Context) {
 		return
 	}
 
-	// validate item + relation ในครั้งเดียว (preload Year ไว้ใช้ตั้งชื่อโฟลเดอร์ด้วย)
-	var item models.MoitItem
-	if err := database.DB.Preload("Topic.Moit.Year").First(&item, itemID).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ไม่พบ item"})
+	// ไฟล์แนบได้กับ item (ข้อรอง) หรือ topic (หัวข้อที่ไม่มีข้อรอง) อย่างใดอย่างหนึ่ง
+	itemID, itemOK := parseOptionalID(c.PostForm("item_id"))
+	topicID, topicOK := parseOptionalID(c.PostForm("topic_id"))
+	if itemOK == topicOK {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false,
+			"message": "ต้องระบุ item_id หรือ topic_id อย่างใดอย่างหนึ่ง"})
 		return
 	}
 
-	// ตรวจ year ตรงกับ item หรือเปล่า
-	if item.Topic.Moit.YearID != uint(yearID) {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "year ไม่ตรงกับ item"})
-		return
+	// หาปีจากสายจริงของ target แล้วเทียบกับ year_id ที่ส่งมา — กันข้อมูลข้ามปีกัน
+	var attachItemID, attachTopicID *uint
+	var docYear int
+	if itemOK {
+		var item models.MoitItem
+		if err := database.DB.Preload("Topic.Moit.Year").First(&item, itemID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ไม่พบ item"})
+			return
+		}
+		if item.Topic.Moit.YearID != uint(yearID) {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "year ไม่ตรงกับ item"})
+			return
+		}
+		attachItemID, docYear = &itemID, item.Topic.Moit.Year.Year
+	} else {
+		var topic models.MoitTopic
+		if err := database.DB.Preload("Moit.Year").First(&topic, topicID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "ไม่พบ topic"})
+			return
+		}
+		if topic.Moit.YearID != uint(yearID) {
+			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "year ไม่ตรงกับ topic"})
+			return
+		}
+		attachTopicID, docYear = &topicID, topic.Moit.Year.Year
 	}
 
 	// รับไฟล์
@@ -256,14 +288,15 @@ func UploadITA(c *gin.Context) {
 		return
 	}
 
-	ext, verr := validateUpload(file, allowedPDFExt, MaxPDFBytes)
+	// ITA รับ PDF และรูป (หลักฐานบาง MOIT เป็นภาพถ่าย/อินโฟกราฟิก)
+	ext, verr := validateUpload(file, allowedITAExt, itaMaxBytes(file.Filename))
 	if verr != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 		return
 	}
 
 	// แยกไฟล์ตามปีที่อัปโหลด → uploads/file/ita/<ปี>/... (เช่น uploads/file/ita/2567/)
-	dir, urlPrefix := itaYearPaths(item.Topic.Moit.Year.Year)
+	dir, urlPrefix := itaYearPaths(docYear)
 	newFileName := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 	savePath := filepath.Join(dir, newFileName)
 
@@ -283,7 +316,8 @@ func UploadITA(c *gin.Context) {
 	}
 
 	ita := models.ITA{
-		ItemID:  uint(itemID),
+		ItemID:  attachItemID,
+		TopicID: attachTopicID,
 		Title:   title,
 		FileURL: urlPrefix + newFileName,
 		YearID:  uint(yearID),
@@ -335,7 +369,7 @@ func UpdateITA(c *gin.Context) {
 	// ไฟล์ใหม่ (optional) — แนบมา = แทนที่ไฟล์เดิม
 	file, err := c.FormFile("file")
 	if err == nil {
-		ext, verr := validateUpload(file, allowedPDFExt, MaxPDFBytes)
+		ext, verr := validateUpload(file, allowedITAExt, itaMaxBytes(file.Filename))
 		if verr != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": verr.Error()})
 			return

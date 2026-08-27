@@ -52,6 +52,7 @@ func runAutoMigrate() {
 		&model.ITAYear{},
 		&model.News{},
 		&model.Activity{},
+		&model.ActivityImage{},
 		&model.Personnel{},
 		&model.User{},
 		&model.MoitCategory{},
@@ -62,6 +63,9 @@ func runAutoMigrate() {
 		&model.Popup{},
 		&model.HeroSlide{},
 		&model.Menu{},
+		&model.ContentSection{},
+		&model.ContentGroup{},
+		&model.ContentFile{},
 	); err != nil {
 		log.Fatal("AutoMigrate ไม่สำเร็จ: ", err)
 	}
