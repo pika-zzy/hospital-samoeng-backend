@@ -53,9 +53,15 @@ type MoitItem struct {
 	Topic MoitTopic `gorm:"constraint:OnDelete:CASCADE;"`
 
 	// nil = ข้อชั้นบนสุด · มีค่า = เป็นข้อย่อยของ item ตัวนั้น
+	//
+	// FIX (2026-08-28): ต้องใส่ constraint ที่ **Children** ด้วย ไม่ใช่แค่ Parent
+	// GORM ไล่สร้าง FK จากความสัมพันธ์ที่เจอก่อน (Children) แล้วข้าม tag ของ Parent
+	// ผลคือ AutoMigrate ได้ fk_moit_items_children ที่ **ไม่มี ON DELETE CASCADE**
+	// ต่างจาก add_moit_item_parent.sql ที่ local ใช้ (fk_moit_items_parent + CASCADE)
+	// = deploy ด้วย RUN_MIGRATE แล้วได้ schema ไม่เหมือน local
 	ParentID *uint      `gorm:"index"`
 	Parent   *MoitItem  `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE"`
-	Children []MoitItem `gorm:"foreignKey:ParentID"`
+	Children []MoitItem `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE"`
 }
 
 // -------- ITA FILE --------
