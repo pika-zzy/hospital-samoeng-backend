@@ -9,6 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// uploadsRoot — โฟลเดอร์ที่เสิร์ฟไฟล์อัปโหลด ใช้ตัวเดียวกันทั้ง FileServer และการตรวจ
+// ว่า path ที่ขอมาเป็นโฟลเดอร์หรือไม่ ตรรกะกัน path traversal จึงเป็นชุดเดียวกันเป๊ะ
+var uploadsRoot = http.Dir("./uploads")
+
+// inlineExt — ชนิดไฟล์ที่ตั้งใจให้เปิดดูในเบราว์เซอร์ได้ตรง ๆ
+// (หน้าข่าวฝัง PDF ด้วย <iframe> และรูปแสดงผ่าน <img>) ชนิดอื่นบังคับดาวน์โหลด
+var inlineExt = map[string]bool{".pdf": true, ".jpg": true, ".jpeg": true, ".png": true}
+
 // UploadsRoute เสิร์ฟไฟล์ใน ./uploads แบบ public (ไม่มี auth) เหมือน r.Static เดิมทุกอย่าง
 // เพิ่มมาอย่างเดียวคือ query `?download=<ชื่อไฟล์>`:
 //
@@ -20,18 +28,53 @@ import (
 // บน production) attribute `download` ของ <a> จึงถูกเบราว์เซอร์เมินทั้งหมด
 // การบังคับดาวน์โหลดข้าม origin ทำได้ทางเดียวคือให้ฝั่ง server ส่ง Content-Disposition
 func UploadsRoute(r *gin.Engine) {
-	fileServer := http.StripPrefix("/uploads", http.FileServer(http.Dir("./uploads")))
+	fileServer := http.StripPrefix("/uploads", http.FileServer(uploadsRoot))
 
 	r.GET("/uploads/*filepath", func(c *gin.Context) {
+		rel := c.Param("filepath")
+
+		// CRIT-03 H3: ปิด directory listing — http.FileServer จะแสดงรายชื่อไฟล์ทั้งโฟลเดอร์
+		// เมื่อในนั้นไม่มี index.html (uploads/file/ita/, uploads/images/news/ ฯลฯ)
+		// = เผยชื่อไฟล์ทุกไฟล์ให้คนนอกไล่ดูได้ ตอบ 404 เหมือนไม่มีของแทน
+		if isUploadDir(rel) {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		// CRIT-03 H2: กันเบราว์เซอร์เดาชนิดไฟล์เอง — ปิดช่อง stored-XSS จากไฟล์ polyglot
+		// (เช่น .pdf ที่เนื้อในเป็น HTML+JS) ที่อาจหลุดด่านตรวจตอนอัปโหลดเข้ามาได้
+		//
+		// ⚠️ ห้ามใส่ X-Frame-Options ตรงนี้ — frontend อยู่คนละ origin กับ backend
+		// SAMEORIGIN/DENY จะบล็อก <iframe> ที่ฝัง PDF ในหน้าข่าวทันที
+		c.Header("X-Content-Type-Options", "nosniff")
+
 		if name := c.Query("download"); name != "" {
-			filename := safeDownloadName(name, path.Base(c.Param("filepath")))
+			filename := safeDownloadName(name, path.Base(rel))
 			// RFC 6266: ส่งทั้ง filename (ASCII fallback) และ filename* (UTF-8)
 			// เพื่อให้ชื่อไทยไม่กลายเป็นตัวขยะบนเบราว์เซอร์เก่า
 			c.Header("Content-Disposition",
 				`attachment; filename="`+asciiFallback(filename)+`"; filename*=UTF-8''`+urlEscape(filename))
+		} else if !inlineExt[strings.ToLower(path.Ext(rel))] {
+			// ชนิดที่เว็บไม่ได้ตั้งใจให้เปิดในหน้าเบราว์เซอร์ → บังคับดาวน์โหลด
+			// กันไฟล์แปลก ๆ ที่วันหลังหลุดเข้ามาถูก render เป็นหน้าเว็บ
+			c.Header("Content-Disposition", "attachment")
 		}
 		fileServer.ServeHTTP(c.Writer, c.Request)
 	})
+}
+
+// isUploadDir บอกว่า path ที่ขอมาชี้ไปที่โฟลเดอร์หรือไม่ — เปิดผ่าน http.Dir ตัวเดียว
+// กับที่ FileServer ใช้ การกัน ".." และการ map path จึงเป็นพฤติกรรมเดียวกัน
+// (เปิดไม่ได้ = ไม่ใช่โฟลเดอร์ ปล่อยให้ FileServer เป็นคนตอบ 404 เองตามเดิม)
+func isUploadDir(name string) bool {
+	f, err := uploadsRoot.Open(name)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	return err == nil && info.IsDir()
 }
 
 // safeDownloadName แปลงชื่อที่ client ขอมาให้ปลอดภัยพอจะใส่ใน header
